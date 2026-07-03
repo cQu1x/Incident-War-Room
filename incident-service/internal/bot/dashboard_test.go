@@ -55,3 +55,29 @@ func TestHandleDashboardReportsIssuerError(t *testing.T) {
 		t.Errorf("expected no link on issuer error, got %q", got)
 	}
 }
+
+func TestHandleShowDashboardButtonSendsPersonalLink(t *testing.T) {
+	linker := &stubLinker{link: "https://incident-war-room.ru/dashboard?token=a.b.c"}
+	h := New(&fakeService{}, newFakeAPI(), WithDashboard(linker))
+	ctx := &mockContext{chatID: -1001234567890}
+
+	if err := h.handleShowDashboard(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if linker.lastChatID != -1001234567890 {
+		t.Errorf("linked chatID = %d, want -1001234567890", linker.lastChatID)
+	}
+	sentContains(t, ctx, "https://incident-war-room.ru/dashboard?token=a.b.c")
+}
+
+func TestIncidentMenuIncludesDashboardButton(t *testing.T) {
+	m := incidentMenu()
+	for _, row := range m.InlineKeyboard {
+		for _, btn := range row {
+			if btn.Unique == btnDashboard.Unique {
+				return
+			}
+		}
+	}
+	t.Fatal("incident menu is missing the dashboard button")
+}

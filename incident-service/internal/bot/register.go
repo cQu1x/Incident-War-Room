@@ -10,6 +10,7 @@ func (h *Handler) Register(b *telebot.Bot) {
 	b.Handle("/dashboard", h.HandleDashboard)
 
 	b.Handle(&btnTimeline, h.handleShowTimeline)
+	b.Handle(&btnDashboard, h.handleShowDashboard)
 	b.Handle(&btnClose, h.handleCloseIncident)
 	b.Handle(&btnSeverity, h.handleChangeSeverity)
 	b.Handle(&btnSevBack, h.handleSeverityBack)
