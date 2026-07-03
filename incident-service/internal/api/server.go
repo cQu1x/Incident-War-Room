@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/cQu1x/Incident-War-Room/internal/auth"
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
 	"github.com/cQu1x/Incident-War-Room/internal/domain/incident"
 )
@@ -32,23 +33,33 @@ type Route struct {
 	Handler http.Handler
 }
 
+// TokenVerifier authenticates dashboard access tokens presented as bearer
+// credentials. It is satisfied by *auth.Issuer.
+type TokenVerifier interface {
+	Verify(token string) (auth.Claims, error)
+}
+
 type Server struct {
 	svc           IncidentService
+	tokens        TokenVerifier
 	allowedOrigin string
 	routes        []Route
 }
 
-func NewServer(svc IncidentService, allowedOrigin string, routes ...Route) *Server {
-	return &Server{svc: svc, allowedOrigin: allowedOrigin, routes: routes}
+func NewServer(svc IncidentService, tokens TokenVerifier, allowedOrigin string, routes ...Route) *Server {
+	return &Server{svc: svc, tokens: tokens, allowedOrigin: allowedOrigin, routes: routes}
 }
 
-// Handler builds the HTTP router with all routes and middleware applied.
+// Handler builds the HTTP router with all routes and middleware applied. Every
+// incident endpoint requires a valid bearer token; the alertmanager webhook and
+// other mounted routes carry their own authentication.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/incidents", s.listIncidents)
-	mux.HandleFunc("GET /api/v1/incidents/{id}", s.getIncident)
-	mux.HandleFunc("GET /api/v1/incidents/{id}/timeline", s.incidentTimeline)
-	mux.HandleFunc("GET /api/v1/incidents/{id}/images", s.incidentImages)
+	mux.HandleFunc("GET /api/v1/auth/verify", s.verifyToken)
+	mux.HandleFunc("GET /api/v1/incidents", s.requireAuth(s.listIncidents))
+	mux.HandleFunc("GET /api/v1/incidents/{id}", s.requireAuth(s.getIncident))
+	mux.HandleFunc("GET /api/v1/incidents/{id}/timeline", s.requireAuth(s.incidentTimeline))
+	mux.HandleFunc("GET /api/v1/incidents/{id}/images", s.requireAuth(s.incidentImages))
 
 	for _, route := range s.routes {
 		mux.Handle(route.Pattern, route.Handler)
@@ -71,7 +82,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", s.allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

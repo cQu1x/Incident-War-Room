@@ -182,7 +182,9 @@ func (h *Handler) closeIncident(c telebot.Context) (*incident.Incident, error) {
 		doc = report.Document{}
 	}
 
-	if _, err := h.api.Send(chat, response.IncidentClosed(*inc, timelineURLs, doc), telebot.ModeHTML); err != nil {
+	dashboardURL := h.dashboardLink(*inc)
+
+	if _, err := h.api.Send(chat, response.IncidentClosed(*inc, timelineURLs, doc, dashboardURL), telebot.ModeHTML); err != nil {
 		return inc, err
 	}
 
@@ -200,6 +202,18 @@ func (h *Handler) closeIncident(c telebot.Context) (*incident.Incident, error) {
 
 	h.forgetAnnouncement(chat.ID, topicID)
 	return inc, nil
+}
+
+func (h *Handler) dashboardLink(inc incident.Incident) string {
+	if h.dashboard == nil {
+		return ""
+	}
+	link, err := h.dashboard.Link(inc.ID)
+	if err != nil {
+		log.Printf("bot: build dashboard link: %v", err)
+		return ""
+	}
+	return link
 }
 
 func (h *Handler) sendReportDocument(chat *telebot.Chat, inc incident.Incident, pdf []byte) error {

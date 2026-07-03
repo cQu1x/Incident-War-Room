@@ -9,7 +9,7 @@ import (
 	"github.com/cQu1x/Incident-War-Room/internal/domain/report"
 )
 
-func IncidentClosed(inc incident.Incident, timelineURLs []string, doc report.Document) string {
+func IncidentClosed(inc incident.Incident, timelineURLs []string, doc report.Document, dashboardURL string) string {
 	var b strings.Builder
 
 	b.WriteString("✅ <b>Incident closed</b>\n\n")
@@ -43,6 +43,11 @@ func IncidentClosed(inc incident.Incident, timelineURLs []string, doc report.Doc
 		b.WriteString("<i>The report is attached below.</i>")
 	default:
 		b.WriteString("<i>The report could not be generated right now.</i>")
+	}
+
+	if dashboardURL != "" {
+		b.WriteString("\n\n🔐 <b>Dashboard</b>\n")
+		fmt.Fprintf(&b, "<a href=\"%s\">Open incident dashboard</a>", escape(dashboardURL))
 	}
 
 	return b.String()

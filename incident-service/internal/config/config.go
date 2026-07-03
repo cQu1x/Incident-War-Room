@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
@@ -33,6 +34,10 @@ type Config struct {
 
 	HTTPAddr          string `env:"HTTP_ADDR"           env-default:":8080"`
 	CORSAllowedOrigin string `env:"CORS_ALLOWED_ORIGIN" env-default:"*"`
+
+	JWTSecret         string        `env:"JWT_SECRET"`
+	DashboardURL      string        `env:"DASHBOARD_URL"        env-default:"https://incident-war-room.ru"`
+	DashboardTokenTTL time.Duration `env:"DASHBOARD_TOKEN_TTL"  env-default:"168h"`
 
 	AlertChatID              int64  `env:"ALERT_CHAT_ID"`
 	AlertmanagerWebhookToken string `env:"ALERTMANAGER_WEBHOOK_TOKEN"`
