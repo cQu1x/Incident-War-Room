@@ -15,10 +15,14 @@ import (
 	"github.com/cQu1x/Incident-War-Room/internal/domain/incident"
 )
 
-type stubService struct{ calls int }
+type stubService struct {
+	calls      int
+	lastChatID *int64
+}
 
-func (s *stubService) ListIncidents(context.Context) ([]incident.Incident, error) {
+func (s *stubService) ListIncidents(_ context.Context, chatID *int64) ([]incident.Incident, error) {
 	s.calls++
+	s.lastChatID = chatID
 	return nil, nil
 }
 func (s *stubService) GetIncident(context.Context, uuid.UUID) (*incident.Incident, error) {
