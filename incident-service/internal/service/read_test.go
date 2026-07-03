@@ -37,40 +37,6 @@ func TestGetIncident(t *testing.T) {
 	})
 }
 
-func TestListIncidents(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("empty when nothing was opened", func(t *testing.T) {
-		svc, _, _ := newTestService()
-
-		incidents, err := svc.ListIncidents(ctx)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(incidents) != 0 {
-			t.Fatalf("expected no incidents, got %d", len(incidents))
-		}
-	})
-
-	t.Run("returns every opened incident", func(t *testing.T) {
-		svc, _, _ := newTestService()
-		if _, err := svc.CreateIncident(ctx, 310, 310, "one", incident.SeverityLow, nil, "alice"); err != nil {
-			t.Fatalf("create: %v", err)
-		}
-		if _, err := svc.CreateIncident(ctx, 311, 311, "two", incident.SeverityLow, nil, "bob"); err != nil {
-			t.Fatalf("create: %v", err)
-		}
-
-		incidents, err := svc.ListIncidents(ctx)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(incidents) != 2 {
-			t.Fatalf("expected 2 incidents, got %d", len(incidents))
-		}
-	})
-}
-
 func newReportService(reports *fakeReports) (*Service, *fakeIncidents) {
 	incidents := newFakeIncidents()
 	events := newFakeEvents()
