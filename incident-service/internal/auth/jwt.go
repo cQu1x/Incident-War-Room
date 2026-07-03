@@ -1,7 +1,7 @@
 // Package auth issues and verifies the short-lived JSON Web Tokens that grant
-// access to the web dashboard. A token is minted when an incident is closed and
-// embedded in the dashboard link sent to the operator; the HTTP API and the
-// frontend both verify it before serving incident data.
+// access to the web dashboard. A token carries the Telegram chat it was minted
+// for and is embedded in the personal dashboard link an operator receives; the
+// HTTP API and the frontend both verify it before serving that chat's data.
 package auth
 
 import (
@@ -10,10 +10,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -24,9 +23,9 @@ var (
 
 // Claims are the verified contents of a dashboard token.
 type Claims struct {
-	IncidentID uuid.UUID
-	IssuedAt   time.Time
-	ExpiresAt  time.Time
+	ChatID    int64
+	IssuedAt  time.Time
+	ExpiresAt time.Time
 }
 
 // Issuer signs and verifies dashboard tokens with a single HMAC-SHA256 secret.
@@ -52,8 +51,8 @@ type payload struct {
 	Exp int64  `json:"exp"`
 }
 
-// Issue mints a token that authorises dashboard access for incidentID.
-func (i *Issuer) Issue(incidentID uuid.UUID) (string, error) {
+// Issue mints a token that authorises dashboard access for chatID.
+func (i *Issuer) Issue(chatID int64) (string, error) {
 	if len(i.secret) == 0 {
 		return "", ErrNoSecret
 	}
@@ -61,7 +60,7 @@ func (i *Issuer) Issue(incidentID uuid.UUID) (string, error) {
 	issued := i.now().UTC()
 	head := encodeSegment(header{Alg: "HS256", Typ: "JWT"})
 	body := encodeSegment(payload{
-		Sub: incidentID.String(),
+		Sub: strconv.FormatInt(chatID, 10),
 		Iat: issued.Unix(),
 		Exp: issued.Add(i.ttl).Unix(),
 	})
@@ -91,15 +90,15 @@ func (i *Issuer) Verify(token string) (Claims, error) {
 		return Claims{}, ErrInvalidToken
 	}
 
-	id, err := uuid.Parse(p.Sub)
+	chatID, err := strconv.ParseInt(p.Sub, 10, 64)
 	if err != nil {
 		return Claims{}, ErrInvalidToken
 	}
 
 	claims := Claims{
-		IncidentID: id,
-		IssuedAt:   time.Unix(p.Iat, 0).UTC(),
-		ExpiresAt:  time.Unix(p.Exp, 0).UTC(),
+		ChatID:    chatID,
+		IssuedAt:  time.Unix(p.Iat, 0).UTC(),
+		ExpiresAt: time.Unix(p.Exp, 0).UTC(),
 	}
 	if !i.now().UTC().Before(claims.ExpiresAt) {
 		return Claims{}, ErrExpiredToken

@@ -1,17 +1,15 @@
-// Package dashboard turns an incident into the tokenised web-dashboard link
-// that operators receive when an incident is closed.
+// Package dashboard builds the personal, tokenised web-dashboard link an
+// operator receives for a Telegram chat.
 package dashboard
 
 import (
 	"net/url"
-
-	"github.com/google/uuid"
 )
 
-// TokenIssuer mints an access token that authorises dashboard access for an
-// incident. It is satisfied by *auth.Issuer.
+// TokenIssuer mints an access token that authorises dashboard access for a
+// Telegram chat. It is satisfied by *auth.Issuer.
 type TokenIssuer interface {
-	Issue(incidentID uuid.UUID) (string, error)
+	Issue(chatID int64) (string, error)
 }
 
 // Linker builds "<baseURL>/dashboard?token=<jwt>" links.
@@ -24,10 +22,10 @@ func NewLinker(baseURL string, issuer TokenIssuer) *Linker {
 	return &Linker{baseURL: baseURL, issuer: issuer}
 }
 
-// Link issues a fresh token for incidentID and returns the dashboard URL that
+// Link issues a fresh token for chatID and returns the dashboard URL that
 // carries it.
-func (l *Linker) Link(incidentID uuid.UUID) (string, error) {
-	token, err := l.issuer.Issue(incidentID)
+func (l *Linker) Link(chatID int64) (string, error) {
+	token, err := l.issuer.Issue(chatID)
 	if err != nil {
 		return "", err
 	}

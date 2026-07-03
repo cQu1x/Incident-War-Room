@@ -4,8 +4,6 @@ import (
 	"errors"
 	"net/url"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 type stubIssuer struct {
@@ -13,12 +11,12 @@ type stubIssuer struct {
 	err   error
 }
 
-func (s stubIssuer) Issue(uuid.UUID) (string, error) { return s.token, s.err }
+func (s stubIssuer) Issue(int64) (string, error) { return s.token, s.err }
 
 func TestLinkCarriesTokenOnDashboardPath(t *testing.T) {
 	linker := NewLinker("https://incident-war-room.ru", stubIssuer{token: "a.b.c"})
 
-	link, err := linker.Link(uuid.New())
+	link, err := linker.Link(42)
 	if err != nil {
 		t.Fatalf("Link: %v", err)
 	}
@@ -38,7 +36,7 @@ func TestLinkCarriesTokenOnDashboardPath(t *testing.T) {
 func TestLinkEscapesToken(t *testing.T) {
 	linker := NewLinker("https://incident-war-room.ru", stubIssuer{token: "a b&c"})
 
-	link, err := linker.Link(uuid.New())
+	link, err := linker.Link(42)
 	if err != nil {
 		t.Fatalf("Link: %v", err)
 	}
@@ -53,7 +51,7 @@ func TestLinkPropagatesIssuerError(t *testing.T) {
 	sentinel := errors.New("no secret")
 	linker := NewLinker("https://incident-war-room.ru", stubIssuer{err: sentinel})
 
-	if _, err := linker.Link(uuid.New()); !errors.Is(err, sentinel) {
+	if _, err := linker.Link(42); !errors.Is(err, sentinel) {
 		t.Fatalf("Link error = %v, want %v", err, sentinel)
 	}
 }

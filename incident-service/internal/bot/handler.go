@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
@@ -30,10 +29,10 @@ type IncidentService interface {
 	GenerateReport(ctx context.Context, chatID, topicID int64) (report.Document, error)
 }
 
-// DashboardLinker builds the tokenised web-dashboard link an operator receives
-// when an incident is closed.
+// DashboardLinker builds the personal tokenised web-dashboard link an operator
+// receives for a Telegram chat.
 type DashboardLinker interface {
-	Link(incidentID uuid.UUID) (string, error)
+	Link(chatID int64) (string, error)
 }
 
 type TelegramAPI interface {
