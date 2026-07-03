@@ -15,8 +15,9 @@ type Repository interface {
 	// GetByID returns errs.ErrIncidentNotFound if no incident exists with the given ID.
 	GetByID(ctx context.Context, id uuid.UUID) (*Incident, error)
 
-	// List returns all incidents ordered from newest to oldest.
-	List(ctx context.Context) ([]Incident, error)
+	// List returns incidents ordered from newest to oldest. When chatID is
+	// non-nil, only incidents belonging to that Telegram chat are returned.
+	List(ctx context.Context, chatID *int64) ([]Incident, error)
 
 	// GetActiveByTopicID returns the topic's active incident,
 	// or errs.ErrNoActiveIncident if there is none.

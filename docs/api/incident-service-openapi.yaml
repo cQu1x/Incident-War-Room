@@ -6,7 +6,7 @@ info:
     Read-only HTTP API that exposes incidents, their timeline and attached
     images to the web frontend. Served by the Go incident-service alongside the
     Telegram bot.
-  version: 1.0.0
+  version: 1.1.0
 
 servers:
   - url: http://localhost:8080
@@ -16,8 +16,20 @@ paths:
   /api/v1/incidents:
     get:
       summary: List incidents
-      description: Returns all incidents ordered from newest to oldest.
+      description: >
+        Returns incidents ordered from newest to oldest. When the chatId query
+        parameter is provided, only incidents belonging to that Telegram chat
+        are returned.
       operationId: listIncidents
+      parameters:
+        - name: chatId
+          in: query
+          required: false
+          description: Telegram chat ID to filter incidents by
+          schema:
+            type: integer
+            format: int64
+          example: -1001234567890
       responses:
         "200":
           description: List of incidents
@@ -27,6 +39,14 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Incident"
+        "400":
+          description: Malformed chatId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "api.chatIDFilter: invalid chatId"
 
   /api/v1/incidents/{id}:
     get:

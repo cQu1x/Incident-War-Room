@@ -20,7 +20,7 @@ const requestTimeout = 30 * time.Second
 
 // IncidentService is the subset of the service layer the HTTP API depends on.
 type IncidentService interface {
-	ListIncidents(ctx context.Context) ([]incident.Incident, error)
+	ListIncidents(ctx context.Context, chatID *int64) ([]incident.Incident, error)
 	GetIncident(ctx context.Context, id uuid.UUID) (*incident.Incident, error)
 	IncidentTimeline(ctx context.Context, id uuid.UUID) (*incident.Incident, []event.Event, error)
 	IncidentImages(ctx context.Context, id uuid.UUID) ([]event.Event, error)

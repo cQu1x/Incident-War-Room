@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -9,16 +10,37 @@ import (
 )
 
 func (s *Server) listIncidents(w http.ResponseWriter, r *http.Request) {
+	chatID, err := chatIDFilter(r)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
 	ctx, cancel := s.context(r)
 	defer cancel()
 
-	incidents, err := s.svc.ListIncidents(ctx)
+	incidents, err := s.svc.ListIncidents(ctx, chatID)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, newIncidentResponses(incidents))
+}
+
+// chatIDFilter reads the optional "chatId" query parameter. It returns nil when
+// the parameter is absent, or a validation error when it is not a valid int64.
+func chatIDFilter(r *http.Request) (*int64, error) {
+	raw := r.URL.Query().Get("chatId")
+	if raw == "" {
+		return nil, nil
+	}
+
+	chatID, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return nil, errs.New(errs.KindValidation, "api.chatIDFilter", "invalid chatId")
+	}
+	return &chatID, nil
 }
 
 func (s *Server) getIncident(w http.ResponseWriter, r *http.Request) {

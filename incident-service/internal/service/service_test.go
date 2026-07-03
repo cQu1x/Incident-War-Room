@@ -44,9 +44,12 @@ func (f *fakeIncidents) GetByID(_ context.Context, id uuid.UUID) (*incident.Inci
 	return &clone, nil
 }
 
-func (f *fakeIncidents) List(_ context.Context) ([]incident.Incident, error) {
+func (f *fakeIncidents) List(_ context.Context, chatID *int64) ([]incident.Incident, error) {
 	incidents := make([]incident.Incident, 0, len(f.byID))
 	for _, inc := range f.byID {
+		if chatID != nil && inc.ChatID != *chatID {
+			continue
+		}
 		incidents = append(incidents, *inc)
 	}
 	return incidents, nil

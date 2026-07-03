@@ -46,8 +46,13 @@ async function getJson(url) {
 }
 
 // GET /api/v1/incidents
-export function getIncidents() {
-  return getJson(`${INCIDENT_BASE}/api/v1/incidents`);
+// When chatId is provided, only incidents belonging to that Telegram chat are returned.
+export function getIncidents(chatId) {
+  const query =
+    chatId === undefined || chatId === null || chatId === ''
+      ? ''
+      : `?chatId=${encodeURIComponent(chatId)}`;
+  return getJson(`${INCIDENT_BASE}/api/v1/incidents${query}`);
 }
 
 // GET /api/v1/incidents/{id}

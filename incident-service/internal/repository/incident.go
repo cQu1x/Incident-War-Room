@@ -72,15 +72,17 @@ func (r *IncidentRepository) GetByID(ctx context.Context, id uuid.UUID) (*incide
 	return inc, nil
 }
 
-// List returns all incidents ordered from newest to oldest by creation time.
-func (r *IncidentRepository) List(ctx context.Context) ([]incident.Incident, error) {
+// List returns incidents ordered from newest to oldest by creation time.
+// When chatID is non-nil, only incidents belonging to that chat are returned.
+func (r *IncidentRepository) List(ctx context.Context, chatID *int64) ([]incident.Incident, error) {
 	const op = "repository.Incident.List"
 	const query = `
 		SELECT id, title, severity, status, chat_id, topic_id, created_by, created_at, closed_at, telegraph_urls, report_url
 		FROM incidents
+		WHERE ($1::bigint IS NULL OR chat_id = $1)
 		ORDER BY created_at DESC`
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query, chatID)
 	if err != nil {
 		return nil, errs.Wrapf(errs.KindInternal, op, err, "select incidents")
 	}
