@@ -84,7 +84,7 @@ func TestIncidentEndpointRejectsInvalidToken(t *testing.T) {
 
 func TestIncidentEndpointAcceptsValidToken(t *testing.T) {
 	svc, issuer, h := newTestServer(t)
-	token, err := issuer.Issue(uuid.New())
+	token, err := issuer.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -101,8 +101,8 @@ func TestIncidentEndpointAcceptsValidToken(t *testing.T) {
 
 func TestVerifyEndpointReturnsClaims(t *testing.T) {
 	_, issuer, h := newTestServer(t)
-	id := uuid.New()
-	token, err := issuer.Issue(id)
+	const chatID int64 = -1001234567890
+	token, err := issuer.Issue(chatID)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -116,8 +116,8 @@ func TestVerifyEndpointReturnsClaims(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
-	if body.IncidentID != id.String() {
-		t.Fatalf("incidentId = %s, want %s", body.IncidentID, id)
+	if body.ChatID != chatID {
+		t.Fatalf("chatId = %d, want %d", body.ChatID, chatID)
 	}
 }
 

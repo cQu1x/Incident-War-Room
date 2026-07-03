@@ -91,7 +91,7 @@ func TestStatusForKind(t *testing.T) {
 
 func TestGetIncidentRejectsMalformedID(t *testing.T) {
 	_, issuer, h := newTestServer(t)
-	token, err := issuer.Issue(uuid.New())
+	token, err := issuer.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const testSecret = "test-signing-secret"
@@ -19,9 +17,9 @@ func fixedIssuer(secret string, ttl time.Duration, now time.Time) *Issuer {
 func TestIssueAndVerifyRoundTrip(t *testing.T) {
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	i := fixedIssuer(testSecret, time.Hour, now)
-	id := uuid.New()
+	const chatID int64 = -1001234567890
 
-	token, err := i.Issue(id)
+	token, err := i.Issue(chatID)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -30,8 +28,8 @@ func TestIssueAndVerifyRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
 	}
-	if claims.IncidentID != id {
-		t.Errorf("IncidentID = %s, want %s", claims.IncidentID, id)
+	if claims.ChatID != chatID {
+		t.Errorf("ChatID = %d, want %d", claims.ChatID, chatID)
 	}
 	if !claims.ExpiresAt.Equal(now.Add(time.Hour)) {
 		t.Errorf("ExpiresAt = %s, want %s", claims.ExpiresAt, now.Add(time.Hour))
@@ -42,7 +40,7 @@ func TestVerifyRejectsExpiredToken(t *testing.T) {
 	issued := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	i := fixedIssuer(testSecret, time.Minute, issued)
 
-	token, err := i.Issue(uuid.New())
+	token, err := i.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -55,7 +53,7 @@ func TestVerifyRejectsExpiredToken(t *testing.T) {
 
 func TestVerifyRejectsTamperedSignature(t *testing.T) {
 	i := NewIssuer(testSecret, time.Hour)
-	token, err := i.Issue(uuid.New())
+	token, err := i.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -66,7 +64,7 @@ func TestVerifyRejectsTamperedSignature(t *testing.T) {
 }
 
 func TestVerifyRejectsTokenSignedWithAnotherSecret(t *testing.T) {
-	token, err := NewIssuer("secret-a", time.Hour).Issue(uuid.New())
+	token, err := NewIssuer("secret-a", time.Hour).Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -87,7 +85,7 @@ func TestVerifyRejectsMalformedToken(t *testing.T) {
 
 func TestIssueAndVerifyRequireSecret(t *testing.T) {
 	i := NewIssuer("", time.Hour)
-	if _, err := i.Issue(uuid.New()); !errors.Is(err, ErrNoSecret) {
+	if _, err := i.Issue(42); !errors.Is(err, ErrNoSecret) {
 		t.Errorf("Issue error = %v, want ErrNoSecret", err)
 	}
 	if _, err := i.Verify("a.b.c"); !errors.Is(err, ErrNoSecret) {

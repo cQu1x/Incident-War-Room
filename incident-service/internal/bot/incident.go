@@ -208,7 +208,7 @@ func (h *Handler) dashboardLink(inc incident.Incident) string {
 	if h.dashboard == nil {
 		return ""
 	}
-	link, err := h.dashboard.Link(inc.ID)
+	link, err := h.dashboard.Link(inc.ChatID)
 	if err != nil {
 		log.Printf("bot: build dashboard link: %v", err)
 		return ""

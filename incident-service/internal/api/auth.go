@@ -35,20 +35,20 @@ func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) (auth.Clai
 }
 
 type verifyResponse struct {
-	IncidentID string    `json:"incidentId"`
-	ExpiresAt  time.Time `json:"expiresAt"`
+	ChatID    int64     `json:"chatId"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // verifyToken lets the frontend confirm a dashboard token before it renders,
-// returning the incident the token was minted for and its expiry.
+// returning the chat the token was minted for and its expiry.
 func (s *Server) verifyToken(w http.ResponseWriter, r *http.Request) {
 	claims, ok := s.authenticate(w, r)
 	if !ok {
 		return
 	}
 	writeJSON(w, http.StatusOK, verifyResponse{
-		IncidentID: claims.IncidentID.String(),
-		ExpiresAt:  claims.ExpiresAt,
+		ChatID:    claims.ChatID,
+		ExpiresAt: claims.ExpiresAt,
 	})
 }
 

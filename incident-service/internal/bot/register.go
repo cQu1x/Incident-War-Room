@@ -7,6 +7,7 @@ func (h *Handler) Register(b *telebot.Bot) {
 	b.Handle("/start", h.HandleStart)
 	b.Handle("/incident", h.HandleIncident)
 	b.Handle("/timeline", h.HandleTimeline)
+	b.Handle("/dashboard", h.HandleDashboard)
 
 	b.Handle(&btnTimeline, h.handleShowTimeline)
 	b.Handle(&btnClose, h.handleCloseIncident)

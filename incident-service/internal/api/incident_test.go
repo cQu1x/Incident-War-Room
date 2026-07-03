@@ -3,13 +3,11 @@ package api
 import (
 	"net/http"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestListIncidentsWithoutChatIdPassesNilFilter(t *testing.T) {
 	svc, issuer, h := newTestServer(t)
-	token, err := issuer.Issue(uuid.New())
+	token, err := issuer.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -26,7 +24,7 @@ func TestListIncidentsWithoutChatIdPassesNilFilter(t *testing.T) {
 
 func TestListIncidentsPassesChatIdFilter(t *testing.T) {
 	svc, issuer, h := newTestServer(t)
-	token, err := issuer.Issue(uuid.New())
+	token, err := issuer.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -43,7 +41,7 @@ func TestListIncidentsPassesChatIdFilter(t *testing.T) {
 
 func TestListIncidentsRejectsInvalidChatId(t *testing.T) {
 	svc, issuer, h := newTestServer(t)
-	token, err := issuer.Issue(uuid.New())
+	token, err := issuer.Issue(42)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
