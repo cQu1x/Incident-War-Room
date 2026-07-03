@@ -10,8 +10,10 @@ import (
 
 	"github.com/cQu1x/Incident-War-Room/internal/alert"
 	"github.com/cQu1x/Incident-War-Room/internal/api"
+	"github.com/cQu1x/Incident-War-Room/internal/auth"
 	"github.com/cQu1x/Incident-War-Room/internal/bot"
 	"github.com/cQu1x/Incident-War-Room/internal/config"
+	"github.com/cQu1x/Incident-War-Room/internal/dashboard"
 	"github.com/cQu1x/Incident-War-Room/internal/domain/media"
 	"github.com/cQu1x/Incident-War-Room/internal/errs"
 	"github.com/cQu1x/Incident-War-Room/internal/mediastore"
@@ -62,7 +64,16 @@ func main() {
 		log.Fatalf("%v", errs.Wrapf(errs.KindUnavailable, "main", err, "connect to Telegram Bot API"))
 	}
 
-	handler := bot.New(svc, tgBot, bot.WithMediaEnabled(cfg.S3Enabled), bot.WithAlertChat(cfg.AlertChatID))
+	tokens := auth.NewIssuer(cfg.JWTSecret, cfg.DashboardTokenTTL)
+	dashboardLinker := dashboard.NewLinker(cfg.DashboardURL, tokens)
+
+	handler := bot.New(
+		svc,
+		tgBot,
+		bot.WithMediaEnabled(cfg.S3Enabled),
+		bot.WithAlertChat(cfg.AlertChatID),
+		bot.WithDashboard(dashboardLinker),
+	)
 	handler.Register(tgBot)
 
 	alertWebhook := alert.NewHandler(handler, cfg.AlertmanagerWebhookToken)

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
@@ -29,6 +30,12 @@ type IncidentService interface {
 	GenerateReport(ctx context.Context, chatID, topicID int64) (report.Document, error)
 }
 
+// DashboardLinker builds the tokenised web-dashboard link an operator receives
+// when an incident is closed.
+type DashboardLinker interface {
+	Link(incidentID uuid.UUID) (string, error)
+}
+
 type TelegramAPI interface {
 	Send(to telebot.Recipient, what interface{}, opts ...interface{}) (*telebot.Message, error)
 	Edit(msg telebot.Editable, what interface{}, opts ...interface{}) (*telebot.Message, error)
@@ -46,6 +53,7 @@ type announceKey struct {
 type Handler struct {
 	svc          IncidentService
 	api          TelegramAPI
+	dashboard    DashboardLinker
 	mediaEnabled bool
 	alertChatID  int64
 
@@ -60,6 +68,12 @@ type Option func(*Handler)
 // bot replies that images are unsupported because S3 storage is not connected.
 func WithMediaEnabled(enabled bool) Option {
 	return func(h *Handler) { h.mediaEnabled = enabled }
+}
+
+// WithDashboard wires the linker that mints the tokenised dashboard link
+// included in the incident-closed message. When unset, no link is shown.
+func WithDashboard(linker DashboardLinker) Option {
+	return func(h *Handler) { h.dashboard = linker }
 }
 
 // WithAlertChat sets the forum supergroup where incidents opened from external
