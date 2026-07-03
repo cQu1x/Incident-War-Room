@@ -77,7 +77,7 @@ func main() {
 	handler.Register(tgBot)
 
 	alertWebhook := alert.NewHandler(handler, cfg.AlertmanagerWebhookToken)
-	apiServer := api.NewServer(svc, cfg.CORSAllowedOrigin, api.Route{
+	apiServer := api.NewServer(svc, tokens, cfg.CORSAllowedOrigin, api.Route{
 		Pattern: "POST /webhooks/alertmanager",
 		Handler: alertWebhook,
 	})
