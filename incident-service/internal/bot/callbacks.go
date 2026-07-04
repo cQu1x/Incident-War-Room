@@ -72,6 +72,7 @@ func (h *Handler) handleSetSeverity(c telebot.Context) error {
 	}
 
 	h.refreshAnnouncement(c, *inc)
+	h.refreshTimeline(c.Chat().ID, threadID(c))
 	return nil
 }
 

@@ -61,6 +61,9 @@ type Handler struct {
 
 	mu            sync.Mutex
 	announcements map[announceKey]telebot.Editable
+
+	timelineMu   sync.Mutex
+	timelineJobs map[announceKey]*timelineJob
 }
 
 // Option customizes a Handler.
@@ -89,6 +92,7 @@ func New(svc IncidentService, api TelegramAPI, opts ...Option) *Handler {
 		svc:           svc,
 		api:           api,
 		announcements: make(map[announceKey]telebot.Editable),
+		timelineJobs:  make(map[announceKey]*timelineJob),
 	}
 	for _, opt := range opts {
 		opt(h)

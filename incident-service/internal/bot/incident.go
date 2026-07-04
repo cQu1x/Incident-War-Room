@@ -122,6 +122,7 @@ func (h *Handler) openIncident(ctx context.Context, chat *telebot.Chat, title st
 	}
 
 	h.rememberAnnouncement(chat.ID, int64(topic.ThreadID), announcement)
+	h.refreshTimeline(chat.ID, int64(topic.ThreadID))
 	return inc, nil
 }
 
@@ -153,6 +154,7 @@ func (h *Handler) addUpdate(c telebot.Context, message string) error {
 		return c.Send(userError(err))
 	}
 
+	h.refreshTimeline(c.Chat().ID, threadID(c))
 	return c.Send("📝 Update added to the timeline.")
 }
 
@@ -262,6 +264,7 @@ func (h *Handler) reopenIncident(c telebot.Context) error {
 		return err
 	}
 	h.rememberAnnouncement(chat.ID, int64(topic.ThreadID), announcement)
+	h.refreshTimeline(chat.ID, int64(topic.ThreadID))
 
 	if err := c.Edit(&telebot.ReplyMarkup{}); err != nil {
 		log.Printf("bot: clear reopen button: %v", err)

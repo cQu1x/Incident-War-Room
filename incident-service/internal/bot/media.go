@@ -68,6 +68,7 @@ func (h *Handler) HandleTopicPhoto(c telebot.Context) error {
 		return c.Send(imageUploadFailed, opts)
 	}
 
+	h.refreshTimeline(c.Chat().ID, topicID)
 	return nil
 }
 
