@@ -60,6 +60,24 @@ func TestBuildPagesKeepsLongEventOnItsOwnPage(t *testing.T) {
 	}
 }
 
+func TestBuildPagesLabelsLifecycleEvents(t *testing.T) {
+	events := []event.Event{
+		{Type: event.TypeIncidentCreated, Username: "alice", Message: "outage", CreatedAt: time.Now()},
+		{Type: event.TypeIncidentClosed, Username: "bob", CreatedAt: time.Now()},
+		{Type: event.TypeIncidentReopened, Username: "carol", CreatedAt: time.Now()},
+	}
+
+	pages := buildPages(incident.Incident{Title: "outage"}, events, maxContentBytes)
+	raw, _ := json.Marshal(pages[0].content)
+	s := string(raw)
+
+	for _, want := range []string{"Incident opened: outage", "Incident closed", "Incident reopened"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("page content missing lifecycle label %q: %s", want, s)
+		}
+	}
+}
+
 func TestBuildPagesRendersEventImage(t *testing.T) {
 	url := "https://example.com/photo.jpg"
 	events := []event.Event{{Username: "alice", Message: "see attached", MediaURL: &url, CreatedAt: time.Now()}}

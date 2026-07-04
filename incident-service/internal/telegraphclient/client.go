@@ -66,13 +66,19 @@ func (c *Client) Publish(ctx context.Context, t timeline.Timeline) ([]string, er
 	}
 
 	pages := buildPages(t.Incident, t.Events, maxContentBytes)
-	created := make([]createdPage, 0, len(pages))
-	for _, p := range pages {
+	existing := existingPages(t.Incident.TelegraphURLs)
+
+	created := make([]createdPage, len(pages))
+	for i, p := range pages {
+		if i < len(existing) {
+			created[i] = existing[i]
+			continue
+		}
 		cp, err := c.createPage(ctx, token, p)
 		if err != nil {
 			return nil, errs.Wrapf(errs.KindUnavailable, op, err, "create telegraph page")
 		}
-		created = append(created, cp)
+		created[i] = cp
 	}
 
 	urls := make([]string, len(created))
@@ -80,16 +86,40 @@ func (c *Client) Publish(ctx context.Context, t timeline.Timeline) ([]string, er
 		urls[i] = cp.url
 	}
 
-	if len(pages) > 1 {
-		for i, p := range pages {
-			content := paginate(p.content, urls, i)
-			if err := c.editPage(ctx, token, created[i].path, p.title, content); err != nil {
-				return nil, errs.Wrapf(errs.KindUnavailable, op, err, "add pagination to telegraph page")
-			}
+	for i, p := range pages {
+		reused := i < len(existing)
+		if !reused && len(pages) == 1 {
+			continue
+		}
+		content := p.content
+		if len(pages) > 1 {
+			content = paginate(p.content, urls, i)
+		}
+		if err := c.editPage(ctx, token, created[i].path, p.title, content); err != nil {
+			return nil, errs.Wrapf(errs.KindUnavailable, op, err, "update telegraph page")
 		}
 	}
 
 	return urls, nil
+}
+
+// existingPages recovers the Telegraph page paths from previously published
+// URLs so the same pages can be edited in place instead of new ones being
+// created on every publish. A Telegraph URL is https://telegra.ph/<path>, so the
+// path is its last segment.
+func existingPages(urls []string) []createdPage {
+	pages := make([]createdPage, 0, len(urls))
+	for _, u := range urls {
+		path := u
+		if i := strings.LastIndex(u, "/"); i >= 0 {
+			path = u[i+1:]
+		}
+		if path == "" {
+			continue
+		}
+		pages = append(pages, createdPage{url: u, path: path})
+	}
+	return pages
 }
 
 func (c *Client) ensureToken(ctx context.Context) (string, error) {

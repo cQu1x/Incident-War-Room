@@ -1,0 +1,2 @@
+-- PostgreSQL does not support removing a value from an enum type, so the
+-- 'SEVERITY_CHANGED' member of event_type is left in place on rollback.

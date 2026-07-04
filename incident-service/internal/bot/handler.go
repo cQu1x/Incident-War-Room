@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
@@ -23,7 +24,9 @@ type IncidentService interface {
 	AddTimelineEvent(ctx context.Context, chatID, topicID int64, userID *int64, username, message string) (*event.Event, error)
 	AddTimelineEventWithImage(ctx context.Context, chatID, topicID int64, userID *int64, username, caption string, img media.Image) (*event.Event, error)
 	CloseIncident(ctx context.Context, chatID, topicID int64, userID *int64, username string) (*incident.Incident, error)
-	SetSeverity(ctx context.Context, chatID, topicID int64, severity incident.Severity) (*incident.Incident, error)
+	ReopenIncident(ctx context.Context, id uuid.UUID, newTopicID int64, userID *int64, username string) (*incident.Incident, error)
+	GetIncident(ctx context.Context, id uuid.UUID) (*incident.Incident, error)
+	SetSeverity(ctx context.Context, chatID, topicID int64, severity incident.Severity, userID *int64, username string) (*incident.Incident, error)
 	GetTimeline(ctx context.Context, chatID, topicID int64) (*incident.Incident, []event.Event, error)
 	PublishTimeline(ctx context.Context, chatID, topicID int64) ([]string, error)
 	GenerateReport(ctx context.Context, chatID, topicID int64) (report.Document, error)
@@ -138,6 +141,8 @@ func userError(err error) string {
 		return "There is no active incident in this chat. Open one with /incident create <description>."
 	case errors.Is(err, errs.ErrIncidentAlreadyActive):
 		return "An incident is already active in this chat. Close it before opening a new one."
+	case errors.Is(err, errs.ErrIncidentNotClosed):
+		return "This incident is not closed, so there is nothing to reopen."
 	case errs.Is(err, errs.KindValidation):
 		return "Sorry, that input is not valid. " + incidentUsage
 	case errs.Is(err, errs.KindUnavailable):

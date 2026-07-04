@@ -197,6 +197,36 @@ func (r *IncidentRepository) Close(ctx context.Context, id uuid.UUID, closedAt t
 	return nil
 }
 
+// Reopen brings a closed incident back to life under a freshly created topic:
+// it flips the status back to ACTIVE, clears the closing time and points the
+// incident at newTopicID. Returns errs.ErrIncidentNotFound if the incident does
+// not exist, errs.ErrIncidentNotClosed if it is not closed, or
+// errs.ErrIncidentAlreadyActive if the chat already has an active incident in
+// that topic.
+func (r *IncidentRepository) Reopen(ctx context.Context, id uuid.UUID, newTopicID int64) error {
+	const query = `
+		UPDATE incidents
+		SET status = $2, closed_at = NULL, topic_id = $3
+		WHERE id = $1 AND status = $4`
+
+	tag, err := r.db.Exec(ctx, query, id, incident.StatusActive, newTopicID, incident.StatusClosed)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
+			return errs.ErrIncidentAlreadyActive
+		}
+		return errs.Wrapf(errs.KindInternal, "repository.Incident.Reopen", err, "reopen incident")
+	}
+	if tag.RowsAffected() == 0 {
+		if _, err := r.GetByID(ctx, id); err != nil {
+			return err
+		}
+		return errs.ErrIncidentNotClosed
+	}
+
+	return nil
+}
+
 // scanIncident reads a single incident row in the standard column order:
 // id, title, severity, status, chat_id, topic_id, created_by, created_at,
 // closed_at, telegraph_urls, report_url.

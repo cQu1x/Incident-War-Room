@@ -27,8 +27,11 @@ func Timeline(inc incident.Incident, events []event.Event) string {
 	}
 
 	for _, e := range shown {
-		fmt.Fprintf(&b, "\n<b>%s</b> — %s: %s",
-			formatTime(e.CreatedAt), escape(e.Username), escape(e.Message))
+		line := escape(e.Username)
+		if summary := e.Summary(); summary != "" {
+			line += ": " + escape(summary)
+		}
+		fmt.Fprintf(&b, "\n<b>%s</b> — %s", formatTime(e.CreatedAt), line)
 	}
 
 	return b.String()

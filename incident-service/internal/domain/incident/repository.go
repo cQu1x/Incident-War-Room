@@ -33,4 +33,11 @@ type Repository interface {
 	// Returns errs.ErrIncidentNotFound if the incident does not exist,
 	// or errs.ErrIncidentAlreadyClosed if it is already closed.
 	Close(ctx context.Context, id uuid.UUID, closedAt time.Time) error
+
+	// Reopen brings a closed incident back to ACTIVE under newTopicID and clears
+	// its closing time. Returns errs.ErrIncidentNotFound if the incident does not
+	// exist, errs.ErrIncidentNotClosed if it is not closed, or
+	// errs.ErrIncidentAlreadyActive if the chat already has an active incident in
+	// that topic.
+	Reopen(ctx context.Context, id uuid.UUID, newTopicID int64) error
 }

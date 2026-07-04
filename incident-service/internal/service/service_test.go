@@ -105,6 +105,25 @@ func (f *fakeIncidents) Close(_ context.Context, id uuid.UUID, closedAt time.Tim
 	return nil
 }
 
+func (f *fakeIncidents) Reopen(_ context.Context, id uuid.UUID, newTopicID int64) error {
+	inc, ok := f.byID[id]
+	if !ok {
+		return errs.ErrIncidentNotFound
+	}
+	if inc.Status != incident.StatusClosed {
+		return errs.ErrIncidentNotClosed
+	}
+	for _, other := range f.byID {
+		if other.ID != id && other.ChatID == inc.ChatID && other.TopicID == newTopicID && other.Status == incident.StatusActive {
+			return errs.ErrIncidentAlreadyActive
+		}
+	}
+	inc.Status = incident.StatusActive
+	inc.ClosedAt = nil
+	inc.TopicID = newTopicID
+	return nil
+}
+
 type fakeEvents struct {
 	byIncident map[uuid.UUID][]event.Event
 }

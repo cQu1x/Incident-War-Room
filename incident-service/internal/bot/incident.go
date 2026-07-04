@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/cQu1x/Incident-War-Room/internal/bot/response"
@@ -184,7 +185,7 @@ func (h *Handler) closeIncident(c telebot.Context) (*incident.Incident, error) {
 
 	dashboardURL := h.dashboardLink(*inc)
 
-	if _, err := h.api.Send(chat, response.IncidentClosed(*inc, timelineURLs, doc, dashboardURL), telebot.ModeHTML); err != nil {
+	if _, err := h.api.Send(chat, response.IncidentClosed(*inc, timelineURLs, doc, dashboardURL), reopenMenu(inc.ID.String()), telebot.ModeHTML); err != nil {
 		return inc, err
 	}
 
@@ -202,6 +203,70 @@ func (h *Handler) closeIncident(c telebot.Context) (*incident.Incident, error) {
 
 	h.forgetAnnouncement(chat.ID, topicID)
 	return inc, nil
+}
+
+func (h *Handler) reopenIncident(c telebot.Context) error {
+	ctx, cancel := reqContext()
+	defer cancel()
+
+	chat := c.Chat()
+	userID, username := sender(c)
+
+	id, err := uuid.Parse(c.Data())
+	if err != nil {
+		log.Printf("bot: reopen incident: invalid id %q: %v", c.Data(), err)
+		return c.Send("Sorry, this incident can no longer be reopened.")
+	}
+
+	inc, err := h.svc.GetIncident(ctx, id)
+	if err != nil {
+		log.Printf("bot: reopen incident: get %s: %v", id, err)
+		return c.Send(userError(err))
+	}
+	if inc.ChatID != chat.ID {
+		return c.Send(userError(errs.ErrIncidentNotFound))
+	}
+	if inc.Status != incident.StatusClosed {
+		return c.Send(userError(errs.ErrIncidentNotClosed))
+	}
+
+	topic, err := h.api.CreateTopic(chat, &telebot.Topic{Name: topicName(inc.Title)})
+	if err != nil {
+		log.Printf("bot: reopen create topic: %v", err)
+		return c.Send(topicForumRequired)
+	}
+
+	reopened, err := h.svc.ReopenIncident(ctx, id, int64(topic.ThreadID), userID, username)
+	if err != nil {
+		log.Printf("bot: reopen incident %s: %v", id, err)
+		if delErr := h.api.DeleteTopic(chat, topic); delErr != nil {
+			log.Printf("bot: delete orphan topic %d: %v", topic.ThreadID, delErr)
+		}
+		return c.Send(userError(err))
+	}
+
+	if _, err := h.api.Send(
+		chat,
+		incidentCard(reopened.Title, reopened.Severity, reopened.Status, h.mediaEnabled),
+		&telebot.SendOptions{ThreadID: topic.ThreadID, ReplyMarkup: incidentMenu()},
+	); err != nil {
+		return err
+	}
+
+	announcement, err := h.api.Send(
+		chat,
+		response.IncidentReopened(*reopened, topicLink(chat, topic.ThreadID)),
+		telebot.ModeHTML,
+	)
+	if err != nil {
+		return err
+	}
+	h.rememberAnnouncement(chat.ID, int64(topic.ThreadID), announcement)
+
+	if err := c.Edit(&telebot.ReplyMarkup{}); err != nil {
+		log.Printf("bot: clear reopen button: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) dashboardLink(inc incident.Incident) string {
@@ -231,5 +296,6 @@ func (h *Handler) setSeverity(c telebot.Context, sev incident.Severity) (*incide
 	ctx, cancel := reqContext()
 	defer cancel()
 
-	return h.svc.SetSeverity(ctx, c.Chat().ID, threadID(c), sev)
+	userID, username := sender(c)
+	return h.svc.SetSeverity(ctx, c.Chat().ID, threadID(c), sev, userID, username)
 }

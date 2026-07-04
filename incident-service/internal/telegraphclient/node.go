@@ -126,8 +126,8 @@ func eventNodes(e event.Event) []any {
 		element("b", text(formatTime(e.CreatedAt))),
 		text(fmt.Sprintf(" — %s", who)),
 	}
-	if e.Message != "" {
-		children = append(children, text(": "+e.Message))
+	if summary := e.Summary(); summary != "" {
+		children = append(children, text(": "+summary))
 	}
 
 	nodes := []any{node{Tag: "p", Children: children}}

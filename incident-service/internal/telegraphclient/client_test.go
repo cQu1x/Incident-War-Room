@@ -20,6 +20,7 @@ type fakeTelegraph struct {
 	createCalls int
 	editCalls   int
 	editBodies  []string
+	editPaths   []string
 }
 
 func (f *fakeTelegraph) handler() http.Handler {
@@ -42,6 +43,7 @@ func (f *fakeTelegraph) handler() http.Handler {
 		f.mu.Lock()
 		f.editCalls++
 		f.editBodies = append(f.editBodies, r.FormValue("content"))
+		f.editPaths = append(f.editPaths, strings.TrimPrefix(r.URL.Path, "/editPage/"))
 		f.mu.Unlock()
 		fmt.Fprint(w, `{"ok":true,"result":{"url":"https://telegra.ph/edited"}}`)
 	})
@@ -84,6 +86,52 @@ func TestPublishSinglePageDoesNotEdit(t *testing.T) {
 	}
 	if fake.editCalls != 0 {
 		t.Fatalf("single page should not be edited, got %d edits", fake.editCalls)
+	}
+}
+
+func TestPublishReusesExistingPages(t *testing.T) {
+	fake := &fakeTelegraph{}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+
+	tl := bigTimeline(2)
+	tl.Incident.TelegraphURLs = []string{"https://telegra.ph/existing-page-1"}
+
+	urls, err := newClient(t, srv).Publish(context.Background(), tl)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(urls) != 1 || urls[0] != "https://telegra.ph/existing-page-1" {
+		t.Fatalf("expected the existing url to be reused, got %v", urls)
+	}
+	if fake.createCalls != 0 {
+		t.Fatalf("expected no new pages to be created, got %d", fake.createCalls)
+	}
+	if fake.editCalls != 1 || len(fake.editPaths) != 1 || fake.editPaths[0] != "existing-page-1" {
+		t.Fatalf("expected the existing page to be edited in place, got paths %v", fake.editPaths)
+	}
+}
+
+func TestPublishExtendsExistingPagesWhenTimelineGrows(t *testing.T) {
+	fake := &fakeTelegraph{}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+
+	tl := bigTimeline(400)
+	tl.Incident.TelegraphURLs = []string{"https://telegra.ph/existing-page-1"}
+
+	urls, err := newClient(t, srv).Publish(context.Background(), tl)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(urls) < 2 {
+		t.Fatalf("expected multiple pages, got %v", urls)
+	}
+	if urls[0] != "https://telegra.ph/existing-page-1" {
+		t.Errorf("expected the first url to stay stable, got %q", urls[0])
+	}
+	if fake.createCalls != len(urls)-1 {
+		t.Errorf("expected only the extra pages to be created, got %d creates for %d pages", fake.createCalls, len(urls))
 	}
 }
 
