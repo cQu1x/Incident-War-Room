@@ -24,6 +24,11 @@ func TestEventSummary(t *testing.T) {
 			want: "Incident reopened",
 		},
 		{
+			name: "severity change combines label and transition",
+			ev:   Event{Type: TypeSeverityChanged, Message: "MEDIUM → HIGH"},
+			want: "Severity changed: MEDIUM → HIGH",
+		},
+		{
 			name: "comment shows only its message",
 			ev:   Event{Type: TypeCommentAdded, Message: "restarting primary"},
 			want: "restarting primary",

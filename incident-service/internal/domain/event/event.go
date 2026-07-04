@@ -24,6 +24,7 @@ const (
 	TypeCommentAdded     EventType = "COMMENT_ADDED"
 	TypeIncidentClosed   EventType = "INCIDENT_CLOSED"
 	TypeIncidentReopened EventType = "INCIDENT_REOPENED"
+	TypeSeverityChanged  EventType = "SEVERITY_CHANGED"
 )
 
 // Label is the human-readable name of a lifecycle event. It is empty for
@@ -36,6 +37,8 @@ func (t EventType) Label() string {
 		return "Incident reopened"
 	case TypeIncidentClosed:
 		return "Incident closed"
+	case TypeSeverityChanged:
+		return "Severity changed"
 	default:
 		return ""
 	}
