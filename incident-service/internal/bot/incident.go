@@ -296,5 +296,6 @@ func (h *Handler) setSeverity(c telebot.Context, sev incident.Severity) (*incide
 	ctx, cancel := reqContext()
 	defer cancel()
 
-	return h.svc.SetSeverity(ctx, c.Chat().ID, threadID(c), sev)
+	userID, username := sender(c)
+	return h.svc.SetSeverity(ctx, c.Chat().ID, threadID(c), sev, userID, username)
 }
