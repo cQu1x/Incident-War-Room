@@ -1,6 +1,7 @@
 from io import BytesIO
 import re
 from xml.sax.saxutils import escape
+from datetime import datetime
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -167,6 +168,28 @@ def build_section_title(title: str, styles: dict) -> list:
         ),
     ]
 
+def format_duration(created_at: str, closed_at: str) -> str:
+    try:
+        start = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(closed_at.replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+
+    total_seconds = max(int((end - start).total_seconds()), 0)
+    days, remainder = divmod(total_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes or not parts:
+        parts.append(f"{minutes}m")
+
+    return " ".join(parts)
+
 
 def build_metadata_table(data: ReportRequest, styles: dict) -> Table:
     rows = [
@@ -185,6 +208,14 @@ def build_metadata_table(data: ReportRequest, styles: dict) -> Table:
                 Paragraph(escape(data.incident.closedAt), styles["TableValue"]),
             ]
         )
+        duration_text = format_duration(data.incident.createdAt, data.incident.closedAt)
+        if duration_text:
+            rows.append(
+                [
+                    Paragraph("Duration", styles["TableLabel"]),
+                    Paragraph(escape(duration_text), styles["TableValue"]),
+                ]
+            )
 
     if data.incident.severity:
         rows.append([Paragraph("Severity", styles["TableLabel"]), make_badge(data.incident.severity, styles)])
