@@ -1,0 +1,2 @@
+-- PostgreSQL does not support removing a value from an enum type, so the
+-- 'INCIDENT_REOPENED' member of event_type is left in place on rollback.

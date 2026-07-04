@@ -20,7 +20,8 @@ type Event struct {
 type EventType string
 
 const (
-	TypeIncidentCreated EventType = "INCIDENT_CREATED"
-	TypeCommentAdded    EventType = "COMMENT_ADDED"
-	TypeIncidentClosed  EventType = "INCIDENT_CLOSED"
+	TypeIncidentCreated  EventType = "INCIDENT_CREATED"
+	TypeCommentAdded     EventType = "COMMENT_ADDED"
+	TypeIncidentClosed   EventType = "INCIDENT_CLOSED"
+	TypeIncidentReopened EventType = "INCIDENT_REOPENED"
 )
