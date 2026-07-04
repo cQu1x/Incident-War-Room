@@ -6,6 +6,7 @@ const EVENT_MARKERS = {
   INCIDENT_CREATED: { label: 'Incident opened', dot: '#dc2626', bg: '#fdeceb', text: '#b42318' },
   INCIDENT_CLOSED: { label: 'Incident closed', dot: '#3f7d4f', bg: '#ecf5ee', text: '#3f7d4f' },
   INCIDENT_REOPENED: { label: 'Incident reopened', dot: '#b45309', bg: '#f8f1e3', text: '#b45309' },
+  SEVERITY_CHANGED: { label: 'Severity changed', dot: '#7c3aed', bg: '#f2ecfb', text: '#6d28d9' },
 };
 
 function markerFor(type) {
