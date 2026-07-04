@@ -53,6 +53,23 @@ func TestTimelineWithEvents(t *testing.T) {
 	}
 }
 
+func TestTimelineLabelsLifecycleEvents(t *testing.T) {
+	inc := incident.Incident{Title: "DB is down"}
+	events := []event.Event{
+		{Type: event.TypeIncidentCreated, Username: "alice", Message: "DB is down", CreatedAt: time.Date(2026, 6, 13, 10, 0, 0, 0, time.UTC)},
+		{Type: event.TypeIncidentClosed, Username: "bob", CreatedAt: time.Date(2026, 6, 13, 11, 0, 0, 0, time.UTC)},
+		{Type: event.TypeIncidentReopened, Username: "carol", CreatedAt: time.Date(2026, 6, 13, 12, 0, 0, 0, time.UTC)},
+	}
+
+	got := Timeline(inc, events)
+
+	for _, want := range []string{"Incident opened: DB is down", "Incident closed", "Incident reopened"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Timeline() = %q, missing lifecycle label %q", got, want)
+		}
+	}
+}
+
 func TestTimelineShowsOnlyLastFive(t *testing.T) {
 	base := time.Date(2026, 6, 13, 10, 0, 0, 0, time.UTC)
 	events := make([]event.Event, 8)
