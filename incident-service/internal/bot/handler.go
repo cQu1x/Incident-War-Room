@@ -141,6 +141,8 @@ func userError(err error) string {
 		return "There is no active incident in this chat. Open one with /incident create <description>."
 	case errors.Is(err, errs.ErrIncidentAlreadyActive):
 		return "An incident is already active in this chat. Close it before opening a new one."
+	case errors.Is(err, errs.ErrIncidentNotClosed):
+		return "This incident is not closed, so there is nothing to reopen."
 	case errs.Is(err, errs.KindValidation):
 		return "Sorry, that input is not valid. " + incidentUsage
 	case errs.Is(err, errs.KindUnavailable):

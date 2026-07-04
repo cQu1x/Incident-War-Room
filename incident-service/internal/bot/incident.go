@@ -226,6 +226,9 @@ func (h *Handler) reopenIncident(c telebot.Context) error {
 	if inc.ChatID != chat.ID {
 		return c.Send(userError(errs.ErrIncidentNotFound))
 	}
+	if inc.Status != incident.StatusClosed {
+		return c.Send(userError(errs.ErrIncidentNotClosed))
+	}
 
 	topic, err := h.api.CreateTopic(chat, &telebot.Topic{Name: topicName(inc.Title)})
 	if err != nil {

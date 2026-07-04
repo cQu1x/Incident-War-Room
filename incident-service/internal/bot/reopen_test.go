@@ -111,6 +111,29 @@ func TestHandleReopenDeletesOrphanTopicOnConflict(t *testing.T) {
 	}
 }
 
+func TestHandleReopenRejectsNonClosedIncident(t *testing.T) {
+	id := uuid.New()
+	api := newFakeAPI()
+	h := New(&fakeService{
+		getInc: func(uuid.UUID) (*incident.Incident, error) {
+			return &incident.Incident{ID: id, Title: "db down", ChatID: 100, Status: incident.StatusActive}, nil
+		},
+		reopen: func(uuid.UUID, int64, *int64, string) (*incident.Incident, error) {
+			t.Fatal("reopen should not run for an incident that is not closed")
+			return nil, nil
+		},
+	}, api)
+	ctx := &mockContext{chatID: 100, data: id.String()}
+
+	if err := h.handleReopenIncident(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	sentContains(t, ctx, "not closed")
+	if len(api.sent) != 0 {
+		t.Errorf("expected no topic to be created for a non-closed incident, got %v", api.sent)
+	}
+}
+
 func TestHandleReopenRejectsInvalidData(t *testing.T) {
 	h := New(&fakeService{
 		getInc: func(uuid.UUID) (*incident.Incident, error) {
