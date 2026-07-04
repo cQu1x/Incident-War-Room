@@ -7,6 +7,7 @@ var (
 	btnClose     = telebot.Btn{Unique: "close_incident", Text: "✅ Close Incident"}
 	btnSeverity  = telebot.Btn{Unique: "change_severity", Text: "⚠️ Change Severity"}
 	btnDashboard = telebot.Btn{Unique: "show_dashboard", Text: "🔐 Dashboard"}
+	btnReopen    = telebot.Btn{Unique: "reopen_incident", Text: "🔄 Reopen Incident"}
 
 	btnSevLow    = telebot.Btn{Unique: "set_severity", Text: "🟢 Low", Data: "LOW"}
 	btnSevMedium = telebot.Btn{Unique: "set_severity", Text: "🟡 Medium", Data: "MEDIUM"}
@@ -20,6 +21,14 @@ func incidentMenu() *telebot.ReplyMarkup {
 		m.Row(btnTimeline, btnDashboard),
 		m.Row(btnClose, btnSeverity),
 	)
+	return m
+}
+
+func reopenMenu(incidentID string) *telebot.ReplyMarkup {
+	m := &telebot.ReplyMarkup{}
+	btn := btnReopen
+	btn.Data = incidentID
+	m.Inline(m.Row(btn))
 	return m
 }
 

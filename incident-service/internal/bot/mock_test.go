@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
@@ -17,16 +18,20 @@ import (
 
 type mockContext struct {
 	telebot.Context
-	args       []string
-	chatID     int64
-	threadID   int64
-	user       *telebot.User
-	message    *telebot.Message
-	sent       []string
-	sentThread []int
+	args        []string
+	chatID      int64
+	threadID    int64
+	data        string
+	user        *telebot.User
+	message     *telebot.Message
+	sent        []string
+	sentThread  []int
+	editedReply []*telebot.ReplyMarkup
 }
 
 func (m *mockContext) Args() []string { return m.args }
+
+func (m *mockContext) Data() string { return m.data }
 
 func (m *mockContext) Chat() *telebot.Chat { return &telebot.Chat{ID: m.chatID} }
 
@@ -40,6 +45,13 @@ func (m *mockContext) Message() *telebot.Message {
 func (m *mockContext) Sender() *telebot.User { return m.user }
 
 func (m *mockContext) Respond(_ ...*telebot.CallbackResponse) error { return nil }
+
+func (m *mockContext) Edit(what interface{}, _ ...interface{}) error {
+	if markup, ok := what.(*telebot.ReplyMarkup); ok {
+		m.editedReply = append(m.editedReply, markup)
+	}
+	return nil
+}
 
 func (m *mockContext) Send(what interface{}, opts ...interface{}) error {
 	if s, ok := what.(string); ok {
@@ -81,6 +93,8 @@ type fakeService struct {
 	addEvent func(chatID, topicID int64, userID *int64, username, message string) (*event.Event, error)
 	addImage func(chatID, topicID int64, userID *int64, username, caption string, img media.Image) (*event.Event, error)
 	closeInc func(chatID, topicID int64, userID *int64, username string) (*incident.Incident, error)
+	reopen   func(id uuid.UUID, newTopicID int64, userID *int64, username string) (*incident.Incident, error)
+	getInc   func(id uuid.UUID) (*incident.Incident, error)
 	setSev   func(chatID, topicID int64, sev incident.Severity) (*incident.Incident, error)
 	timeline func(chatID, topicID int64) (*incident.Incident, []event.Event, error)
 	publish  func(chatID, topicID int64) ([]string, error)
@@ -101,6 +115,14 @@ func (f *fakeService) AddTimelineEventWithImage(_ context.Context, chatID, topic
 
 func (f *fakeService) CloseIncident(_ context.Context, chatID, topicID int64, userID *int64, username string) (*incident.Incident, error) {
 	return f.closeInc(chatID, topicID, userID, username)
+}
+
+func (f *fakeService) ReopenIncident(_ context.Context, id uuid.UUID, newTopicID int64, userID *int64, username string) (*incident.Incident, error) {
+	return f.reopen(id, newTopicID, userID, username)
+}
+
+func (f *fakeService) GetIncident(_ context.Context, id uuid.UUID) (*incident.Incident, error) {
+	return f.getInc(id)
 }
 
 func (f *fakeService) SetSeverity(_ context.Context, chatID, topicID int64, sev incident.Severity) (*incident.Incident, error) {

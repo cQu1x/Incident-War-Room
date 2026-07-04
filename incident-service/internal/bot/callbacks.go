@@ -39,6 +39,14 @@ func (h *Handler) handleCloseIncident(c telebot.Context) error {
 	return err
 }
 
+func (h *Handler) handleReopenIncident(c telebot.Context) error {
+	if err := c.Respond(&telebot.CallbackResponse{Text: "Reopening incident…"}); err != nil {
+		return err
+	}
+
+	return h.reopenIncident(c)
+}
+
 func (h *Handler) handleChangeSeverity(c telebot.Context) error {
 	if err := c.Respond(); err != nil {
 		return err
