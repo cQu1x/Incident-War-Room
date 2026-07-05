@@ -1,0 +1,19 @@
+route:
+  receiver: incident-war-room
+  group_by: ['alertname']
+  group_wait: 5s               # маленький, чтобы инцидент появлялся быстро
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: incident-war-room
+    webhook_configs:
+      - url: 'http://incident-service:8080/webhooks/alertmanager'
+        send_resolved: false
+        # Bearer-токен для авторизации вебхука. ДОЛЖЕН совпадать с
+        # ALERTMANAGER_WEBHOOK_TOKEN в корневом .env. Alertmanager не
+        # подставляет переменные окружения в конфиг, поэтому значение тут явное.
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: 10aa638afab38ebc7e0f677d70eac5c1b389d9a61a11f654
