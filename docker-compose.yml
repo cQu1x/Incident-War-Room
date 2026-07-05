@@ -85,6 +85,39 @@ services:
       - frontend
       - incident-service
 
+  # --- Automatic incidents from monitoring (demo stack) ---
+  # demo-app is a controllable target ("Сломать"/"Починить"); Prometheus scrapes
+  # it and, when demo_app_error_rate crosses the threshold, fires an alert that
+  # Alertmanager posts to incident-service's /webhooks/alertmanager, opening an
+  # incident. The webhook call carries the ALERTMANAGER_WEBHOOK_TOKEN.
+
+  demo-app:
+    build: ./demo-app
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - demo-app
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    depends_on:
+      - incident-service
+
 volumes:
   postgres_data:
   caddy_data:

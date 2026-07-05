@@ -1,0 +1,10 @@
+groups:
+  - name: demo
+    rules:
+      - alert: HighErrorRate
+        expr: demo_app_error_rate > 0.5
+        for: 15s                # короткий for → инцидент появляется через ~20-30с после «Сломать»
+        labels:
+          severity: critical    # → инцидент HIGH
+        annotations:
+          summary: "High error rate on demo-app"

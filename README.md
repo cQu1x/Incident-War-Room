@@ -146,3 +146,31 @@ Let's Encrypt TLS certificate automatically.
 
 `PUBLIC_BASE_URL` is inlined into the JS bundle at build time, so after changing
 it rebuild the frontend (`docker compose up --build -d`).
+
+## Automatic incidents from monitoring
+
+`docker-compose.yml` ships a demo monitoring stack that opens incidents
+automatically when monitoring detects a failure:
+
+* **demo-app** (`:9000`) — a controllable target with a web page exposing a
+  Prometheus gauge and two buttons: **🔥 Сломать** / **✅ Починить**.
+* **prometheus** (`:9090`) — scrapes demo-app and evaluates the `HighErrorRate`
+  rule (`demo_app_error_rate > 0.5` for 15s).
+* **alertmanager** (`:9093`) — on a firing alert, POSTs to the incident-service
+  webhook `POST /webhooks/alertmanager`, which opens an incident.
+
+Required `.env` for this to work:
+
+| Variable | Description |
+| --- | --- |
+| `ALERT_CHAT_ID` | Numeric id of the Telegram forum supergroup (bot must be admin with Manage Topics) where the auto-incident is opened. Without it the webhook returns "alert chat is not configured" |
+| `ALERTMANAGER_WEBHOOK_TOKEN` | Bearer token that authenticates the webhook. **Must match** `credentials:` in `monitoring/alertmanager/alertmanager.yml` |
+
+**Try it:** open the demo-app page (`http://<host>:9000`), press **🔥 Сломать**.
+Within ~20–30s Prometheus fires `HighErrorRate`, Alertmanager calls the webhook,
+and a new incident appears in the alert chat. Press **✅ Починить** to reset the
+gauge.
+
+> The webhook endpoint is only reachable inside the Docker network (Caddy exposes
+> only `/api/*` and the frontend), so nothing external can post fake alerts. To
+> click the demo button from your browser, open port `9000` on the host firewall.
