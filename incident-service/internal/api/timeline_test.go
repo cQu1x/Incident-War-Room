@@ -69,13 +69,14 @@ func TestNewTimelineResponseActiveHasNoDuration(t *testing.T) {
 func TestNewImageResponsesFiltersEventsWithoutMedia(t *testing.T) {
 	events := []event.Event{
 		{ID: uuid.New(), Username: "alice", Message: "no image"},
-		{ID: uuid.New(), Username: "bob", Message: "shot", MediaURL: strptr("https://cdn.example/a.jpg")},
+		{ID: uuid.New(), Username: "bob", Message: "shot", MediaURLs: []string{"https://cdn.example/a.jpg"}},
+		{ID: uuid.New(), Username: "carol", Message: "album", MediaURLs: []string{"https://cdn.example/b.jpg", "https://cdn.example/c.mp4"}},
 	}
 
 	images := newImageResponses(events)
 
-	if len(images) != 1 {
-		t.Fatalf("expected 1 image, got %d", len(images))
+	if len(images) != 3 {
+		t.Fatalf("expected 3 media items, got %d", len(images))
 	}
 	if images[0].URL != "https://cdn.example/a.jpg" || images[0].Username != "bob" || images[0].Message != "shot" {
 		t.Fatalf("unexpected image: %+v", images[0])

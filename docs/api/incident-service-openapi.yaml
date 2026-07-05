@@ -272,7 +272,7 @@ components:
           format: uuid
         type:
           type: string
-          enum: [INCIDENT_CREATED, COMMENT_ADDED, INCIDENT_CLOSED]
+          enum: [INCIDENT_CREATED, COMMENT_ADDED, INCIDENT_CLOSED, INCIDENT_REOPENED, SEVERITY_CHANGED]
           example: "COMMENT_ADDED"
         userId:
           type: integer
@@ -285,11 +285,16 @@ components:
         message:
           type: string
           example: "Found connection pool errors"
-        mediaUrl:
-          type: string
-          nullable: true
-          description: Public URL of the photo attached to this event, if any
-          example: "https://storage.example.com/incidents/15/abc.jpg"
+        mediaUrls:
+          type: array
+          items:
+            type: string
+          description: >-
+            Public URLs of the media attached to this event (images, video,
+            documents, …). Empty when the event has no attachments.
+          example:
+            - "https://storage.example.com/incidents/15/abc.jpg"
+            - "https://storage.example.com/incidents/15/def.mp4"
         createdAt:
           type: string
           format: date-time
@@ -307,10 +312,13 @@ components:
         eventId:
           type: string
           format: uuid
-          description: ID of the timeline event the image is attached to
+          description: >-
+            ID of the timeline event the media is attached to. An event carrying
+            several attachments yields one entry per attachment, all sharing this
+            eventId.
         url:
           type: string
-          description: Public URL of the image
+          description: Public URL of the media (image, video, document, …)
           example: "https://storage.example.com/incidents/15/abc.jpg"
         username:
           type: string

@@ -1,6 +1,6 @@
 import Avatar from '../components/Avatar.jsx';
 import EmptyState from '../components/EmptyState.jsx';
-import { formatDate } from '../utils.js';
+import { formatDate, mediaKind, fileName } from '../utils.js';
 
 const EVENT_MARKERS = {
   INCIDENT_CREATED: { label: 'Incident opened', dot: '#dc2626', bg: '#fdeceb', text: '#b42318' },
@@ -17,6 +17,42 @@ function markerFor(type) {
       bg: '#f0efec',
       text: '#6f6e69',
     }
+  );
+}
+
+// MediaAttachment previews a single attachment inline: images and videos are
+// shown, anything else (documents, audio, …) becomes a download link.
+function MediaAttachment({ url, caption }) {
+  const kind = mediaKind(url);
+  const box = {
+    maxWidth: 320,
+    borderRadius: 8,
+    border: '1px solid #ebe9e6',
+    display: 'block',
+  };
+
+  if (kind === 'image') {
+    return <img src={url} alt={caption || 'attachment'} style={box} />;
+  }
+  if (kind === 'video') {
+    return <video src={url} controls style={{ ...box, maxHeight: 240 }} />;
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        ...box,
+        padding: '8px 12px',
+        fontSize: 12.5,
+        color: '#0e7490',
+        textDecoration: 'none',
+        background: '#f7f6f4',
+      }}
+    >
+      📎 {fileName(url)}
+    </a>
   );
 }
 
@@ -59,18 +95,12 @@ export default function TimelineTab({ events }) {
               <div style={{ fontSize: 13.5, color: '#33332f', lineHeight: 1.5 }}>
                 {event.message}
               </div>
-              {event.mediaUrl && (
-                <img
-                  src={event.mediaUrl}
-                  alt={event.message || 'attached photo'}
-                  style={{
-                    marginTop: 8,
-                    maxWidth: 320,
-                    borderRadius: 8,
-                    border: '1px solid #ebe9e6',
-                    display: 'block',
-                  }}
-                />
+              {event.mediaUrls?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                  {event.mediaUrls.map((url) => (
+                    <MediaAttachment key={url} url={url} caption={event.message} />
+                  ))}
+                </div>
               )}
             </div>
           </div>

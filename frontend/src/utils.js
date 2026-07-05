@@ -59,6 +59,27 @@ export function formatDate(iso) {
   };
 }
 
+// mediaKind classifies an attachment URL by its file extension so the UI can
+// pick the right element: an <img> for images, a <video> for videos, and a
+// plain download link for everything else (documents, audio, …).
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+const VIDEO_EXTS = ['mp4', 'webm', 'mov', 'm4v', 'ogv'];
+
+export function mediaKind(url) {
+  const clean = String(url).split(/[?#]/)[0];
+  const ext = clean.slice(clean.lastIndexOf('.') + 1).toLowerCase();
+  if (IMAGE_EXTS.includes(ext)) return 'image';
+  if (VIDEO_EXTS.includes(ext)) return 'video';
+  return 'file';
+}
+
+// fileName returns the last path segment of a URL, used as a label for
+// non-previewable attachments.
+export function fileName(url) {
+  const clean = String(url).split(/[?#]/)[0];
+  return decodeURIComponent(clean.slice(clean.lastIndexOf('/') + 1)) || 'attachment';
+}
+
 export function formatDuration(seconds) {
   if (seconds == null) return null;
   const h = Math.floor(seconds / 3600);

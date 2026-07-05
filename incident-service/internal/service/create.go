@@ -44,7 +44,6 @@ func (s *Service) CreateIncident(
 	}
 
 	inc := &incident.Incident{
-		Title:     title,
 		Severity:  severity,
 		Status:    incident.StatusActive,
 		ChatID:    chatID,
@@ -53,6 +52,12 @@ func (s *Service) CreateIncident(
 	}
 
 	err := s.tx.WithTx(ctx, func(incidents incident.Repository, events event.Repository) error {
+		uniqueTitle, err := uniqueActiveTitle(ctx, incidents, chatID, title)
+		if err != nil {
+			return err
+		}
+		inc.Title = uniqueTitle
+
 		if err := incidents.Create(ctx, inc); err != nil {
 			return err
 		}
@@ -61,7 +66,7 @@ func (s *Service) CreateIncident(
 			Type:       event.TypeIncidentCreated,
 			UserID:     userID,
 			Username:   username,
-			Message:    title,
+			Message:    inc.Title,
 		})
 	})
 	if err != nil {
@@ -109,26 +114,30 @@ func (s *Service) AddTimelineEvent(
 	return e, nil
 }
 
-// AddTimelineEventWithImage appends a comment carrying a single image to the
-// chat's active incident timeline. The image is uploaded to media storage and
-// its public URL is stored on the event as MediaURL, alongside the (possibly
-// empty) caption.
+// AddTimelineEventWithMedia appends a comment carrying one or more media
+// attachments (images, video, documents, …) to the chat's active incident
+// timeline. Each file is uploaded to media storage and its public URL is stored
+// on the event in MediaURLs, alongside the (possibly empty) caption.
 //
-// Returns errs.ErrNoActiveIncident if the chat has no active incident, or an
-// errs.KindUnavailable error if media storage is not configured.
-func (s *Service) AddTimelineEventWithImage(
+// Returns errs.ErrNoActiveIncident if the chat has no active incident, an
+// errs.KindUnavailable error if media storage is not configured, or an
+// errs.KindValidation error if no files are provided.
+func (s *Service) AddTimelineEventWithMedia(
 	ctx context.Context,
 	chatID int64,
 	topicID int64,
 	userID *int64,
 	username string,
 	caption string,
-	img media.Image,
+	files []media.File,
 ) (*event.Event, error) {
-	const op = "service.AddTimelineEventWithImage"
+	const op = "service.AddTimelineEventWithMedia"
 
 	if s.media == nil {
 		return nil, errs.New(errs.KindUnavailable, op, "media storage is not configured")
+	}
+	if len(files) == 0 {
+		return nil, errs.New(errs.KindValidation, op, "at least one media file is required")
 	}
 
 	active, err := s.incidents.GetActiveByTopicID(ctx, chatID, topicID)
@@ -136,10 +145,14 @@ func (s *Service) AddTimelineEventWithImage(
 		return nil, err
 	}
 
-	key := fmt.Sprintf("incidents/%s/%s.%s", active.ID, uuid.New(), img.Ext)
-	url, err := s.media.Upload(ctx, key, img)
-	if err != nil {
-		return nil, err
+	urls := make([]string, 0, len(files))
+	for _, f := range files {
+		key := fmt.Sprintf("incidents/%s/%s.%s", active.ID, uuid.New(), f.Ext)
+		url, err := s.media.Upload(ctx, key, f)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, url)
 	}
 
 	e := &event.Event{
@@ -148,13 +161,30 @@ func (s *Service) AddTimelineEventWithImage(
 		UserID:     userID,
 		Username:   username,
 		Message:    strings.TrimSpace(caption),
-		MediaURL:   &url,
+		MediaURLs:  urls,
 	}
 	if err := s.events.Create(ctx, e); err != nil {
 		return nil, err
 	}
 
 	return e, nil
+}
+
+// uniqueActiveTitle returns a title that no other active incident in the chat
+// currently uses. If base is free it is returned unchanged; otherwise a numeric
+// suffix ("-2", "-3", …) is appended until a free title is found.
+func uniqueActiveTitle(ctx context.Context, incidents incident.Repository, chatID int64, base string) (string, error) {
+	candidate := base
+	for n := 2; ; n++ {
+		count, err := incidents.CountActiveByTitle(ctx, chatID, candidate)
+		if err != nil {
+			return "", err
+		}
+		if count == 0 {
+			return candidate, nil
+		}
+		candidate = fmt.Sprintf("%s-%d", base, n)
+	}
 }
 
 func validSeverity(s incident.Severity) bool {

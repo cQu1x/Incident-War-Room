@@ -13,11 +13,15 @@ type eventResponse struct {
 	UserID     *int64    `json:"userId"`
 	Username   string    `json:"username"`
 	Message    string    `json:"message"`
-	MediaURL   *string   `json:"mediaUrl"`
+	MediaURLs  []string  `json:"mediaUrls"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
 func newEventResponse(e event.Event) eventResponse {
+	mediaURLs := e.MediaURLs
+	if mediaURLs == nil {
+		mediaURLs = []string{}
+	}
 	return eventResponse{
 		ID:         e.ID.String(),
 		IncidentID: e.IncidentID.String(),
@@ -25,7 +29,7 @@ func newEventResponse(e event.Event) eventResponse {
 		UserID:     e.UserID,
 		Username:   e.Username,
 		Message:    e.Message,
-		MediaURL:   e.MediaURL,
+		MediaURLs:  mediaURLs,
 		CreatedAt:  e.CreatedAt,
 	}
 }

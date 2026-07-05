@@ -22,7 +22,7 @@ const handlerTimeout = 30 * time.Second
 type IncidentService interface {
 	CreateIncident(ctx context.Context, chatID, topicID int64, title string, severity incident.Severity, userID *int64, username string) (*incident.Incident, error)
 	AddTimelineEvent(ctx context.Context, chatID, topicID int64, userID *int64, username, message string) (*event.Event, error)
-	AddTimelineEventWithImage(ctx context.Context, chatID, topicID int64, userID *int64, username, caption string, img media.Image) (*event.Event, error)
+	AddTimelineEventWithMedia(ctx context.Context, chatID, topicID int64, userID *int64, username, caption string, files []media.File) (*event.Event, error)
 	CloseIncident(ctx context.Context, chatID, topicID int64, userID *int64, username string) (*incident.Incident, error)
 	ReopenIncident(ctx context.Context, id uuid.UUID, newTopicID int64, userID *int64, username string) (*incident.Incident, error)
 	GetIncident(ctx context.Context, id uuid.UUID) (*incident.Incident, error)
@@ -64,6 +64,10 @@ type Handler struct {
 
 	timelineMu   sync.Mutex
 	timelineJobs map[announceKey]*timelineJob
+
+	albumMu     sync.Mutex
+	albums      map[string]*album
+	albumWindow time.Duration
 }
 
 // Option customizes a Handler.
@@ -81,6 +85,13 @@ func WithDashboard(linker DashboardLinker) Option {
 	return func(h *Handler) { h.dashboard = linker }
 }
 
+// WithAlbumWindow overrides how long album items are buffered before the album
+// is recorded as one timeline event. It exists primarily so tests can shorten
+// the wait.
+func WithAlbumWindow(d time.Duration) Option {
+	return func(h *Handler) { h.albumWindow = d }
+}
+
 // WithAlertChat sets the forum supergroup where incidents opened from external
 // monitoring alerts are created. When unset, OpenIncidentFromAlert is rejected.
 func WithAlertChat(chatID int64) Option {
@@ -93,6 +104,8 @@ func New(svc IncidentService, api TelegramAPI, opts ...Option) *Handler {
 		api:           api,
 		announcements: make(map[announceKey]telebot.Editable),
 		timelineJobs:  make(map[announceKey]*timelineJob),
+		albums:        make(map[string]*album),
+		albumWindow:   albumWindow,
 	}
 	for _, opt := range opts {
 		opt(h)

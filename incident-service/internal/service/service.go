@@ -38,8 +38,8 @@ type Service struct {
 	now       func() time.Time
 }
 
-// New builds the service. media may be nil when image uploads are disabled; in
-// that case AddTimelineEventWithImage rejects images with errs.KindUnavailable.
+// New builds the service. media may be nil when media uploads are disabled; in
+// that case AddTimelineEventWithMedia rejects attachments with errs.KindUnavailable.
 func New(incidents incident.Repository, events event.Repository, tx TxManager, reports report.Generator, timelines timeline.Publisher, media media.Storage) *Service {
 	return &Service{
 		incidents: incidents,

@@ -55,5 +55,37 @@ services:
       postgres:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Vite inlines this into the bundle at build time, so it must be a URL
+        # the browser can reach. Point it at the public domain; Caddy proxies
+        # /api/* on that domain to the incident-service.
+        VITE_INCIDENT_API_BASE: ${PUBLIC_BASE_URL:-https://incident-war-room.ru}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - incident-service
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      - SITE_DOMAIN=${SITE_DOMAIN:-incident-war-room.ru}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - incident-service
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

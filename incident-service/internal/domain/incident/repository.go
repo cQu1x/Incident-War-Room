@@ -23,6 +23,11 @@ type Repository interface {
 	// or errs.ErrNoActiveIncident if there is none.
 	GetActiveByTopicID(ctx context.Context, chatID, topicID int64) (*Incident, error)
 
+	// CountActiveByTitle returns how many active incidents in the chat carry
+	// exactly the given title. It is used to keep active incident titles unique
+	// within a chat by appending a numeric suffix on collision.
+	CountActiveByTitle(ctx context.Context, chatID int64, title string) (int, error)
+
 	// UpdateSeverity returns errs.ErrIncidentNotFound if no incident exists with the given ID.
 	UpdateSeverity(ctx context.Context, id uuid.UUID, severity Severity) error
 

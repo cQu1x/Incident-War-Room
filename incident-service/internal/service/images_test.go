@@ -25,7 +25,7 @@ func TestIncidentImages(t *testing.T) {
 		if _, err := svc.AddTimelineEvent(ctx, 700, 700, ptrInt64(2), "bob", "looking"); err != nil {
 			t.Fatalf("add event: %v", err)
 		}
-		if _, err := svc.AddTimelineEventWithImage(ctx, 700, 700, ptrInt64(3), "carol", "screenshot", media.Image{Data: []byte("x"), Ext: "jpg"}); err != nil {
+		if _, err := svc.AddTimelineEventWithMedia(ctx, 700, 700, ptrInt64(3), "carol", "screenshot", []media.File{{Data: []byte("x"), Ext: "jpg"}}); err != nil {
 			t.Fatalf("add image: %v", err)
 		}
 
@@ -36,8 +36,8 @@ func TestIncidentImages(t *testing.T) {
 		if len(images) != 1 {
 			t.Fatalf("expected 1 image event, got %d", len(images))
 		}
-		if images[0].MediaURL == nil || *images[0].MediaURL != store.url {
-			t.Fatalf("expected media url %q, got %v", store.url, images[0].MediaURL)
+		if len(images[0].MediaURLs) != 1 || images[0].MediaURLs[0] != store.url {
+			t.Fatalf("expected media url %q, got %v", store.url, images[0].MediaURLs)
 		}
 	})
 

@@ -3,6 +3,7 @@ package telegraphclient
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
@@ -131,8 +132,17 @@ func eventNodes(e event.Event) []any {
 	}
 
 	nodes := []any{node{Tag: "p", Children: children}}
-	if e.MediaURL != nil && *e.MediaURL != "" {
-		nodes = append(nodes, imageNode(*e.MediaURL))
+	for _, url := range e.MediaURLs {
+		if url == "" {
+			continue
+		}
+		// Telegraph can only embed images; other attachments (video, documents)
+		// are rendered as links so they are still reachable from the timeline.
+		if isImageURL(url) {
+			nodes = append(nodes, imageNode(url))
+		} else {
+			nodes = append(nodes, node{Tag: "p", Children: []any{link(url, "📎 Attachment")}})
+		}
 	}
 	return nodes
 }
@@ -140,6 +150,21 @@ func eventNodes(e event.Event) []any {
 func imageNode(src string) node {
 	img := node{Tag: "img", Attrs: &attrs{Src: src}}
 	return node{Tag: "figure", Children: []any{img}}
+}
+
+// isImageURL reports whether the URL points at an image Telegraph can embed,
+// based on its file extension.
+func isImageURL(u string) bool {
+	if i := strings.IndexAny(u, "?#"); i >= 0 {
+		u = u[:i]
+	}
+	ext := strings.ToLower(u[strings.LastIndex(u, ".")+1:])
+	switch ext {
+	case "jpg", "jpeg", "png", "gif", "webp", "bmp":
+		return true
+	default:
+		return false
+	}
 }
 
 func element(tag string, children ...any) node {
