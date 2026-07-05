@@ -80,7 +80,7 @@ func TestBuildPagesLabelsLifecycleEvents(t *testing.T) {
 
 func TestBuildPagesRendersEventImage(t *testing.T) {
 	url := "https://example.com/photo.jpg"
-	events := []event.Event{{Username: "alice", Message: "see attached", MediaURL: &url, CreatedAt: time.Now()}}
+	events := []event.Event{{Username: "alice", Message: "see attached", MediaURLs: []string{url}, CreatedAt: time.Now()}}
 
 	pages := buildPages(incident.Incident{Title: "outage"}, events, maxContentBytes)
 
@@ -95,14 +95,29 @@ func TestBuildPagesRendersEventImage(t *testing.T) {
 }
 
 func TestBuildPagesSkipsEmptyMediaURL(t *testing.T) {
-	empty := ""
-	events := []event.Event{{Username: "alice", Message: "no photo", MediaURL: &empty, CreatedAt: time.Now()}}
+	events := []event.Event{{Username: "alice", Message: "no photo", MediaURLs: []string{""}, CreatedAt: time.Now()}}
 
 	pages := buildPages(incident.Incident{Title: "outage"}, events, maxContentBytes)
 
 	raw, _ := json.Marshal(pages[0].content)
 	if strings.Contains(string(raw), `"tag":"img"`) {
 		t.Errorf("expected no img node for empty media url: %s", raw)
+	}
+}
+
+func TestBuildPagesRendersNonImageMediaAsLink(t *testing.T) {
+	url := "https://example.com/capture.mp4"
+	events := []event.Event{{Username: "alice", Message: "clip", MediaURLs: []string{url}, CreatedAt: time.Now()}}
+
+	pages := buildPages(incident.Incident{Title: "outage"}, events, maxContentBytes)
+
+	raw, _ := json.Marshal(pages[0].content)
+	s := string(raw)
+	if strings.Contains(s, `"tag":"img"`) {
+		t.Errorf("non-image media should not render as an img node: %s", s)
+	}
+	if !strings.Contains(s, `"tag":"a"`) || !strings.Contains(s, url) {
+		t.Errorf("expected a link to the attachment: %s", s)
 	}
 }
 

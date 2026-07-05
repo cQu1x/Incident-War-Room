@@ -91,7 +91,7 @@ func sentContains(t *testing.T, m *mockContext, substr string) {
 type fakeService struct {
 	create   func(chatID, topicID int64, title string, sev incident.Severity, userID *int64, username string) (*incident.Incident, error)
 	addEvent func(chatID, topicID int64, userID *int64, username, message string) (*event.Event, error)
-	addImage func(chatID, topicID int64, userID *int64, username, caption string, img media.Image) (*event.Event, error)
+	addMedia func(chatID, topicID int64, userID *int64, username, caption string, files []media.File) (*event.Event, error)
 	closeInc func(chatID, topicID int64, userID *int64, username string) (*incident.Incident, error)
 	reopen   func(id uuid.UUID, newTopicID int64, userID *int64, username string) (*incident.Incident, error)
 	getInc   func(id uuid.UUID) (*incident.Incident, error)
@@ -109,8 +109,8 @@ func (f *fakeService) AddTimelineEvent(_ context.Context, chatID, topicID int64,
 	return f.addEvent(chatID, topicID, userID, username, message)
 }
 
-func (f *fakeService) AddTimelineEventWithImage(_ context.Context, chatID, topicID int64, userID *int64, username, caption string, img media.Image) (*event.Event, error) {
-	return f.addImage(chatID, topicID, userID, username, caption, img)
+func (f *fakeService) AddTimelineEventWithMedia(_ context.Context, chatID, topicID int64, userID *int64, username, caption string, files []media.File) (*event.Event, error) {
+	return f.addMedia(chatID, topicID, userID, username, caption, files)
 }
 
 func (f *fakeService) CloseIncident(_ context.Context, chatID, topicID int64, userID *int64, username string) (*incident.Incident, error) {

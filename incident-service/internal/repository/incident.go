@@ -119,6 +119,24 @@ func (r *IncidentRepository) GetActiveByTopicID(ctx context.Context, chatID, top
 	return inc, nil
 }
 
+// CountActiveByTitle returns the number of active incidents in the chat whose
+// title exactly matches title.
+func (r *IncidentRepository) CountActiveByTitle(ctx context.Context, chatID int64, title string) (int, error) {
+	const op = "repository.Incident.CountActiveByTitle"
+	const query = `
+		SELECT count(*)
+		FROM incidents
+		WHERE chat_id = $1 AND title = $2 AND status = $3`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, chatID, title, incident.StatusActive).Scan(&count)
+	if err != nil {
+		return 0, errs.Wrapf(errs.KindInternal, op, err, "count active incidents by title")
+	}
+
+	return count, nil
+}
+
 // UpdateSeverity sets a new severity for the incident,
 // or returns errs.ErrIncidentNotFound if it does not exist.
 func (r *IncidentRepository) UpdateSeverity(ctx context.Context, id uuid.UUID, severity incident.Severity) error {

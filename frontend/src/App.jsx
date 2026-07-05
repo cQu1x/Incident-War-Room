@@ -1,6 +1,7 @@
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import IncidentList from './pages/IncidentList.jsx';
 import IncidentDetail from './pages/IncidentDetail.jsx';
+import { AuthProvider } from './AuthContext.jsx';
 
 function Brand() {
   const navigate = useNavigate();
@@ -16,17 +17,22 @@ function Brand() {
 
 export default function App() {
   return (
-    <div className="wr-app">
-      <div className="wr-topbar">
-        <Brand />
+    <AuthProvider>
+      <div className="wr-app">
+        <div className="wr-topbar">
+          <Brand />
+        </div>
+        <div className="wr-main">
+          <Routes>
+            <Route path="/" element={<IncidentList />} />
+            <Route path="/incidents/:id" element={<IncidentDetail />} />
+            <Route path="/incidents/:id/:tab" element={<IncidentDetail />} />
+            {/* The bot link lands on /dashboard?token=…; the token is captured
+                by AuthProvider, so just send the user to the incident list. */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </div>
-      <div className="wr-main">
-        <Routes>
-          <Route path="/" element={<IncidentList />} />
-          <Route path="/incidents/:id" element={<IncidentDetail />} />
-          <Route path="/incidents/:id/:tab" element={<IncidentDetail />} />
-        </Routes>
-      </div>
-    </div>
+    </AuthProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getIncidents, ApiError } from '../api.js';
+import { useAuth } from '../AuthContext.jsx';
 import { formatDate, shortRef } from '../utils.js';
 import SeverityBadge from '../components/SeverityBadge.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
@@ -10,6 +11,7 @@ import EmptyState from '../components/EmptyState.jsx';
 
 export default function IncidentList() {
   const navigate = useNavigate();
+  const { chatId } = useAuth();
   const [status, setStatus] = useState('loading'); // loading | ready | error
   const [incidents, setIncidents] = useState([]);
   const [error, setError] = useState(null);
@@ -18,14 +20,14 @@ export default function IncidentList() {
     setStatus('loading');
     setError(null);
     try {
-      const data = await getIncidents();
+      const data = await getIncidents(chatId);
       setIncidents(data || []);
       setStatus('ready');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unexpected error');
       setStatus('error');
     }
-  }, []);
+  }, [chatId]);
 
   useEffect(() => {
     load();

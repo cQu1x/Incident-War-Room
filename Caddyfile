@@ -1,0 +1,20 @@
+# Reverse proxy for the public deployment.
+#
+# Serves the frontend and the incident-service API under a single domain so the
+# browser talks to one HTTPS origin (no CORS, no mixed content). Caddy obtains
+# and renews a Let's Encrypt certificate automatically for {$SITE_DOMAIN}.
+#
+# SITE_DOMAIN is read from the environment (set it in the root .env).
+
+{$SITE_DOMAIN} {
+	# API calls go to the incident-service. The frontend is built with
+	# VITE_INCIDENT_API_BASE=https://<domain>, so it requests /api/v1/... here.
+	handle /api/* {
+		reverse_proxy incident-service:8080
+	}
+
+	# Everything else is the static React app (nginx serves the SPA fallback).
+	handle {
+		reverse_proxy frontend:80
+	}
+}

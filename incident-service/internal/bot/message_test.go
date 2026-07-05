@@ -10,41 +10,6 @@ import (
 	"github.com/cQu1x/Incident-War-Room/internal/errs"
 )
 
-func mediaMessages() map[string]*telebot.Message {
-	return map[string]*telebot.Message{
-		"photo":     {ThreadID: 7, Photo: &telebot.Photo{}},
-		"video":     {ThreadID: 7, Video: &telebot.Video{}},
-		"videoNote": {ThreadID: 7, VideoNote: &telebot.VideoNote{}},
-		"document":  {ThreadID: 7, Document: &telebot.Document{}},
-		"voice":     {ThreadID: 7, Voice: &telebot.Voice{}},
-		"audio":     {ThreadID: 7, Audio: &telebot.Audio{}},
-		"animation": {ThreadID: 7, Animation: &telebot.Animation{}},
-		"sticker":   {ThreadID: 7, Sticker: &telebot.Sticker{}},
-	}
-}
-
-func TestHandleTopicMediaRejected(t *testing.T) {
-	for name, msg := range mediaMessages() {
-		t.Run(name, func(t *testing.T) {
-			h := New(&fakeService{
-				timeline: func(int64, int64) (*incident.Incident, []event.Event, error) {
-					return &incident.Incident{}, nil, nil
-				},
-			}, newFakeAPI())
-
-			ctx := &mockContext{chatID: 42, message: msg}
-
-			if err := h.HandleTopicMedia(ctx); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			sentContains(t, ctx, "not allowed")
-			if ctx.sentThread[0] != 7 {
-				t.Errorf("reply thread = %d, want 7", ctx.sentThread[0])
-			}
-		})
-	}
-}
-
 func TestHandleTopicMediaOutsideTopicIgnored(t *testing.T) {
 	called := false
 	h := New(&fakeService{
@@ -64,23 +29,6 @@ func TestHandleTopicMediaOutsideTopicIgnored(t *testing.T) {
 	}
 	if len(ctx.sent) != 0 {
 		t.Errorf("expected no reply outside a topic, got %v", ctx.sent)
-	}
-}
-
-func TestHandleTopicMediaNoActiveIncidentSilent(t *testing.T) {
-	h := New(&fakeService{
-		timeline: func(int64, int64) (*incident.Incident, []event.Event, error) {
-			return nil, nil, errs.ErrNoActiveIncident
-		},
-	}, newFakeAPI())
-
-	ctx := &mockContext{chatID: 42, message: &telebot.Message{ThreadID: 7, Photo: &telebot.Photo{}}}
-
-	if err := h.HandleTopicMedia(ctx); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(ctx.sent) != 0 {
-		t.Errorf("expected no reply without an active incident, got %v", ctx.sent)
 	}
 }
 

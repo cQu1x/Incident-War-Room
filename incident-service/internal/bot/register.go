@@ -20,11 +20,10 @@ func (h *Handler) Register(b *telebot.Bot) {
 
 	b.Handle(telebot.OnText, h.HandleTopicText)
 
-	// Photos may be attached to the timeline when media uploads are enabled.
-	b.Handle(telebot.OnPhoto, h.HandleTopicPhoto)
-
-	// Other media is never recorded on the timeline; reject it in incident topics.
+	// Any media of any type may be attached to the timeline when media uploads
+	// are enabled; albums are recorded together as a single event.
 	for _, ev := range []string{
+		telebot.OnPhoto,
 		telebot.OnVideo,
 		telebot.OnVideoNote,
 		telebot.OnDocument,

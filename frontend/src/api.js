@@ -3,6 +3,11 @@
 // The frontend is read-only: it only ever issues GET requests against
 // the incident-service. The report-service is not called directly yet
 // (see the open question about report generation in the feature list doc).
+//
+// Every incident-service endpoint (except /auth/verify) requires the
+// dashboard token from the /dashboard bot link as a bearer token; see auth.js.
+
+import { getToken, clearToken } from './auth.js';
 
 const INCIDENT_BASE = (
   import.meta.env.VITE_INCIDENT_API_BASE || 'http://localhost:8080'
@@ -21,13 +26,26 @@ export class ApiError extends Error {
 }
 
 async function getJson(url) {
+  const token = getToken();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
   let res;
   try {
-    res = await fetch(url);
+    res = await fetch(url, { headers });
   } catch (err) {
     throw new ApiError(
       `Could not reach the server at ${url}`,
       null
+    );
+  }
+
+  if (res.status === 401) {
+    // The token is missing, invalid, or expired. Drop it so the app falls
+    // back to the "open the link from the bot" screen on the next check.
+    clearToken();
+    throw new ApiError(
+      'Your dashboard link is invalid or has expired. Open a fresh one from the Telegram bot with /dashboard.',
+      401
     );
   }
 
@@ -43,6 +61,13 @@ async function getJson(url) {
   }
 
   return res.json();
+}
+
+// GET /api/v1/auth/verify
+// Confirms the stored token and returns the chat it was minted for, so the
+// dashboard can scope the incident list to that chat.
+export function verifyToken() {
+  return getJson(`${INCIDENT_BASE}/api/v1/auth/verify`);
 }
 
 // GET /api/v1/incidents

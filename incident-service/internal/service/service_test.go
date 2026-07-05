@@ -65,6 +65,16 @@ func (f *fakeIncidents) GetActiveByTopicID(_ context.Context, chatID, topicID in
 	return nil, errs.ErrNoActiveIncident
 }
 
+func (f *fakeIncidents) CountActiveByTitle(_ context.Context, chatID int64, title string) (int, error) {
+	count := 0
+	for _, inc := range f.byID {
+		if inc.ChatID == chatID && inc.Status == incident.StatusActive && inc.Title == title {
+			count++
+		}
+	}
+	return count, nil
+}
+
 func (f *fakeIncidents) UpdateSeverity(_ context.Context, id uuid.UUID, severity incident.Severity) error {
 	inc, ok := f.byID[id]
 	if !ok {
@@ -196,15 +206,17 @@ func (f *fakeTimelines) Publish(_ context.Context, t timeline.Timeline) ([]strin
 }
 
 type fakeMedia struct {
-	lastKey string
-	lastImg media.Image
-	url     string
-	err     error
+	lastKey  string
+	lastFile media.File
+	uploads  int
+	url      string
+	err      error
 }
 
-func (f *fakeMedia) Upload(_ context.Context, key string, img media.Image) (string, error) {
+func (f *fakeMedia) Upload(_ context.Context, key string, file media.File) (string, error) {
 	f.lastKey = key
-	f.lastImg = img
+	f.lastFile = file
+	f.uploads++
 	if f.err != nil {
 		return "", f.err
 	}
@@ -275,6 +287,52 @@ func TestCreateIncident(t *testing.T) {
 			t.Fatalf("expected validation error, got %v", err)
 		}
 	})
+
+	t.Run("duplicate active title in a chat gets a numeric suffix", func(t *testing.T) {
+		svc, _, _ := newTestService()
+
+		// Same chat, different topics (a forum chat can hold many active
+		// incidents), all opened with the same title.
+		first, err := svc.CreateIncident(ctx, 104, 1, "DB is down", incident.SeverityLow, nil, "alice")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		second, err := svc.CreateIncident(ctx, 104, 2, "DB is down", incident.SeverityLow, nil, "alice")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		third, err := svc.CreateIncident(ctx, 104, 3, "DB is down", incident.SeverityLow, nil, "alice")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if first.Title != "DB is down" {
+			t.Fatalf("first title = %q, want %q", first.Title, "DB is down")
+		}
+		if second.Title != "DB is down-2" {
+			t.Fatalf("second title = %q, want %q", second.Title, "DB is down-2")
+		}
+		if third.Title != "DB is down-3" {
+			t.Fatalf("third title = %q, want %q", third.Title, "DB is down-3")
+		}
+	})
+
+	t.Run("title is reused once the earlier incident is no longer active", func(t *testing.T) {
+		svc, incidents, _ := newTestService()
+
+		first, _ := svc.CreateIncident(ctx, 105, 1, "outage", incident.SeverityLow, nil, "alice")
+		if err := incidents.Close(ctx, first.ID, time.Now()); err != nil {
+			t.Fatalf("close: %v", err)
+		}
+
+		reused, err := svc.CreateIncident(ctx, 105, 2, "outage", incident.SeverityLow, nil, "alice")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if reused.Title != "outage" {
+			t.Fatalf("title = %q, want %q (base is free again)", reused.Title, "outage")
+		}
+	})
 }
 
 func TestAddTimelineEvent(t *testing.T) {
@@ -316,7 +374,7 @@ func TestAddTimelineEvent(t *testing.T) {
 	})
 }
 
-func TestAddTimelineEventWithImage(t *testing.T) {
+func TestAddTimelineEventWithMedia(t *testing.T) {
 	ctx := context.Background()
 
 	newImageService := func(m media.Storage) (*Service, *fakeIncidents, *fakeEvents) {
@@ -326,24 +384,56 @@ func TestAddTimelineEventWithImage(t *testing.T) {
 		return svc, incidents, events
 	}
 
-	t.Run("uploads image and stores its url on the event", func(t *testing.T) {
+	t.Run("uploads media and stores its url on the event", func(t *testing.T) {
 		store := &fakeMedia{url: "https://cdn.example/incidents/pic.jpg"}
 		svc, _, events := newImageService(store)
 		inc, _ := svc.CreateIncident(ctx, 500, 500, "outage", incident.SeverityHigh, nil, "alice")
 
-		e, err := svc.AddTimelineEventWithImage(ctx, 500, 500, ptrInt64(3), "bob", "screenshot", media.Image{Data: []byte("x"), ContentType: "image/jpeg", Ext: "jpg"})
+		e, err := svc.AddTimelineEventWithMedia(ctx, 500, 500, ptrInt64(3), "bob", "screenshot", []media.File{{Data: []byte("x"), ContentType: "image/jpeg", Ext: "jpg"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if e.MediaURL == nil || *e.MediaURL != store.url {
-			t.Fatalf("expected media url %q, got %v", store.url, e.MediaURL)
+		if len(e.MediaURLs) != 1 || e.MediaURLs[0] != store.url {
+			t.Fatalf("expected media url %q, got %v", store.url, e.MediaURLs)
 		}
 		if e.Message != "screenshot" {
 			t.Fatalf("expected caption stored as message, got %q", e.Message)
 		}
 		stored := events.byIncident[inc.ID]
-		if len(stored) != 2 || stored[1].MediaURL == nil {
+		if len(stored) != 2 || len(stored[1].MediaURLs) != 1 {
 			t.Fatalf("expected comment event with media url, got %+v", stored)
+		}
+	})
+
+	t.Run("uploads every file of an album onto one event", func(t *testing.T) {
+		store := &fakeMedia{url: "https://cdn.example/incidents/pic.jpg"}
+		svc, _, events := newImageService(store)
+		inc, _ := svc.CreateIncident(ctx, 503, 503, "outage", incident.SeverityHigh, nil, "alice")
+
+		files := []media.File{{Ext: "jpg"}, {Ext: "mp4"}, {Ext: "png"}}
+		e, err := svc.AddTimelineEventWithMedia(ctx, 503, 503, ptrInt64(3), "bob", "album", files)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(e.MediaURLs) != 3 {
+			t.Fatalf("expected 3 media urls, got %v", e.MediaURLs)
+		}
+		if store.uploads != 3 {
+			t.Fatalf("expected 3 uploads, got %d", store.uploads)
+		}
+		stored := events.byIncident[inc.ID]
+		if len(stored) != 2 || len(stored[1].MediaURLs) != 3 {
+			t.Fatalf("expected comment event with 3 media urls, got %+v", stored)
+		}
+	})
+
+	t.Run("no files is a validation error", func(t *testing.T) {
+		svc, _, _ := newImageService(&fakeMedia{url: "https://cdn.example/x.jpg"})
+		_, _ = svc.CreateIncident(ctx, 504, 504, "outage", incident.SeverityHigh, nil, "alice")
+
+		_, err := svc.AddTimelineEventWithMedia(ctx, 504, 504, nil, "bob", "", nil)
+		if errs.KindOf(err) != errs.KindValidation {
+			t.Fatalf("expected validation, got %v", err)
 		}
 	})
 
@@ -351,7 +441,7 @@ func TestAddTimelineEventWithImage(t *testing.T) {
 		svc, _, _ := newImageService(nil)
 		_, _ = svc.CreateIncident(ctx, 501, 501, "outage", incident.SeverityHigh, nil, "alice")
 
-		_, err := svc.AddTimelineEventWithImage(ctx, 501, 501, nil, "bob", "", media.Image{Ext: "jpg"})
+		_, err := svc.AddTimelineEventWithMedia(ctx, 501, 501, nil, "bob", "", []media.File{{Ext: "jpg"}})
 		if errs.KindOf(err) != errs.KindUnavailable {
 			t.Fatalf("expected unavailable, got %v", err)
 		}
@@ -360,7 +450,7 @@ func TestAddTimelineEventWithImage(t *testing.T) {
 	t.Run("no active incident", func(t *testing.T) {
 		svc, _, _ := newImageService(&fakeMedia{url: "https://cdn.example/x.jpg"})
 
-		_, err := svc.AddTimelineEventWithImage(ctx, 502, 502, nil, "bob", "", media.Image{Ext: "jpg"})
+		_, err := svc.AddTimelineEventWithMedia(ctx, 502, 502, nil, "bob", "", []media.File{{Ext: "jpg"}})
 		if errs.KindOf(err) != errs.KindNotFound {
 			t.Fatalf("expected not-found, got %v", err)
 		}

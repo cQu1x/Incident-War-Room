@@ -8,9 +8,9 @@ import (
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
 )
 
-// IncidentImages returns the timeline events of the incident that carry an
-// attached image, in chronological order. Returns errs.ErrIncidentNotFound if
-// the incident does not exist.
+// IncidentImages returns the timeline events of the incident that carry at
+// least one media attachment, in chronological order. Returns
+// errs.ErrIncidentNotFound if the incident does not exist.
 func (s *Service) IncidentImages(ctx context.Context, id uuid.UUID) ([]event.Event, error) {
 	if _, err := s.incidents.GetByID(ctx, id); err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (s *Service) IncidentImages(ctx context.Context, id uuid.UUID) ([]event.Eve
 
 	images := make([]event.Event, 0)
 	for _, e := range events {
-		if e.MediaURL != nil && *e.MediaURL != "" {
+		if len(e.MediaURLs) > 0 {
 			images = append(images, e)
 		}
 	}

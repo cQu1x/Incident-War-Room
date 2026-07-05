@@ -49,14 +49,14 @@ func New(cfg Config) *Storage {
 	}
 }
 
-func (s *Storage) Upload(ctx context.Context, key string, img media.Image) (string, error) {
+func (s *Storage) Upload(ctx context.Context, key string, file media.File) (string, error) {
 	const op = "mediastore.Upload"
 
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(key),
-		Body:        bytes.NewReader(img.Data),
-		ContentType: aws.String(img.ContentType),
+		Body:        bytes.NewReader(file.Data),
+		ContentType: aws.String(file.ContentType),
 		ACL:         types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {

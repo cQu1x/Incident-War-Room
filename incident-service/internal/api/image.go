@@ -6,8 +6,9 @@ import (
 	"github.com/cQu1x/Incident-War-Room/internal/domain/event"
 )
 
-// imageResponse is a single image attached to the incident timeline, with the
-// caption it was posted with and its author.
+// imageResponse is a single media attachment on the incident timeline, with the
+// caption it was posted with and its author. An event carrying several
+// attachments yields one imageResponse per attachment.
 type imageResponse struct {
 	EventID   string    `json:"eventId"`
 	URL       string    `json:"url"`
@@ -16,21 +17,20 @@ type imageResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// newImageResponses maps timeline events to image DTOs. Every event is expected
-// to carry a media URL; events without one are skipped defensively.
+// newImageResponses flattens timeline events into media DTOs, emitting one entry
+// per attached media URL so every attachment of every event is surfaced.
 func newImageResponses(events []event.Event) []imageResponse {
 	out := make([]imageResponse, 0, len(events))
 	for _, e := range events {
-		if e.MediaURL == nil {
-			continue
+		for _, url := range e.MediaURLs {
+			out = append(out, imageResponse{
+				EventID:   e.ID.String(),
+				URL:       url,
+				Username:  e.Username,
+				Message:   e.Message,
+				CreatedAt: e.CreatedAt,
+			})
 		}
-		out = append(out, imageResponse{
-			EventID:   e.ID.String(),
-			URL:       *e.MediaURL,
-			Username:  e.Username,
-			Message:   e.Message,
-			CreatedAt: e.CreatedAt,
-		})
 	}
 	return out
 }
