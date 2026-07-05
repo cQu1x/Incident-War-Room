@@ -1,0 +1,5 @@
+# Caddy reads the pre-issued TLS certificate from this directory (mounted at
+# /certs). Place two files here on the server:
+#   cert.pem  -> full chain   (acme.sh: ~/.acme.sh/<domain>_ecc/fullchain.cer)
+#   key.pem   -> private key   (acme.sh: ~/.acme.sh/<domain>_ecc/<domain>.key)
+# These are git-ignored; only this placeholder is tracked so the mount exists.
