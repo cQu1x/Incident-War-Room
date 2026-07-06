@@ -5,7 +5,3 @@
 *.out
 tmp/
 .DS_Store
-
-# TLS material for the public deploy — never commit the cert/key, only the dir.
-/certs/*
-!/certs/.gitkeep

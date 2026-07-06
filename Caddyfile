@@ -3,22 +3,14 @@
 # Serves the frontend and the incident-service API under a single domain so the
 # browser talks to one HTTPS origin (no CORS, no mixed content).
 #
-# TLS: automatic ACME issuance does NOT work for this deployment — the public IP
-# is not reachable from Let's Encrypt's validators ("Network unreachable"), so
-# HTTP-01 / TLS-ALPN-01 can never complete. Instead we obtain the certificate
-# out-of-band via a DNS-01 challenge (acme.sh manual mode + a reg.ru TXT record)
-# and hand Caddy the resulting files. Renew every ~90 days and re-drop the files.
-#
-# Expected files (mounted at /certs, see docker-compose.yml):
-#   /certs/cert.pem  -> full chain (acme.sh fullchain.cer)
-#   /certs/key.pem   -> private key (acme.sh <domain>.key)
+# TLS: Caddy issues and renews the certificate automatically via ACME.
+# Let's Encrypt validators reach us through the frp tunnel (VPS ports 80/443
+# are relayed to this container, see frpc.toml), so HTTP-01 completes normally.
+# Issued certs are persisted in the caddy_data volume.
 #
 # SITE_DOMAIN is read from the environment (set it in the root .env).
 
 {$SITE_DOMAIN} {
-	# Use the pre-issued certificate files instead of ACME auto-issuance.
-	tls /certs/cert.pem /certs/key.pem
-
 	# API calls go to the incident-service. The frontend is built with
 	# VITE_INCIDENT_API_BASE=https://<domain>, so it requests /api/v1/... here.
 	handle /api/* {

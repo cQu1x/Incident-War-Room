@@ -79,9 +79,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Pre-issued TLS certificate (DNS-01 via acme.sh). Drop cert.pem/key.pem
-      # here; the Caddyfile references /certs/cert.pem and /certs/key.pem.
-      - ./certs:/certs:ro
+      # caddy_data holds the automatically issued ACME certificates; keep it
+      # so certs survive container recreation.
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
