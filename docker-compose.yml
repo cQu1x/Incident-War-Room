@@ -88,6 +88,20 @@ services:
       - frontend
       - incident-service
 
+  # Public ingress tunnel: the VM cannot accept inbound connections, so frpc
+  # keeps an outbound connection to frps on the VPS and the VPS forwards its
+  # ports 80/443 here (see frpc.toml). Requires FRP_AUTH_TOKEN in .env.
+  frpc:
+    image: snowdreamtech/frpc:0
+    restart: unless-stopped
+    environment:
+      - FRP_SERVER_ADDR=${FRP_SERVER_ADDR:-91.149.238.104}
+      - FRP_AUTH_TOKEN=${FRP_AUTH_TOKEN}
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    depends_on:
+      - caddy
+
   # --- Automatic incidents from monitoring (demo stack) ---
   # demo-app is a controllable target ("Сломать"/"Починить"); Prometheus scrapes
   # it and, when demo_app_error_rate crosses the threshold, fires an alert that

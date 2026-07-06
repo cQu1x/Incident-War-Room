@@ -1,0 +1,28 @@
+# frp client for the public deployment.
+#
+# The university VM sits behind NAT and cannot accept inbound connections, so
+# the public entry point is the VPS (FRP_SERVER_ADDR): frpc dials OUT to frps
+# on the VPS over TCP 7000, and the VPS forwards its ports 80/443 back through
+# that connection to the Caddy container. TLS is still terminated by Caddy on
+# the VM; the VPS only relays raw TCP.
+#
+# FRP_AUTH_TOKEN must match auth.token in frps.toml on the VPS.
+
+serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"
+serverPort = 7000
+auth.method = "token"
+auth.token = "{{ .Envs.FRP_AUTH_TOKEN }}"
+
+[[proxies]]
+name = "http"
+type = "tcp"
+localIP = "caddy"
+localPort = 80
+remotePort = 80
+
+[[proxies]]
+name = "https"
+type = "tcp"
+localIP = "caddy"
+localPort = 443
+remotePort = 443
