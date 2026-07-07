@@ -174,3 +174,12 @@ gauge.
 > The webhook endpoint is only reachable inside the Docker network (Caddy exposes
 > only `/api/*` and the frontend), so nothing external can post fake alerts. To
 > click the demo button from your browser, open port `9000` on the host firewall.
+
+## CI/CD
+
+Every pull request and every push to `main` runs the CI workflow (Go and Python
+build/lint/test plus a Docker build). On `main`, CI also publishes the service
+images to GHCR, and the CD workflow then deploys those exact images to the
+production VM and health-checks the stack.
+
+See [`docs/ci-cd.md`](docs/ci-cd.md) for the full description.
