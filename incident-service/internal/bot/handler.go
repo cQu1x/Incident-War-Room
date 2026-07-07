@@ -42,6 +42,7 @@ type TelegramAPI interface {
 	Send(to telebot.Recipient, what interface{}, opts ...interface{}) (*telebot.Message, error)
 	Edit(msg telebot.Editable, what interface{}, opts ...interface{}) (*telebot.Message, error)
 	CreateTopic(chat *telebot.Chat, topic *telebot.Topic) (*telebot.Topic, error)
+	EditTopic(chat *telebot.Chat, topic *telebot.Topic) error
 	DeleteTopic(chat *telebot.Chat, topic *telebot.Topic) error
 	FileByID(fileID string) (telebot.File, error)
 	File(file *telebot.File) (io.ReadCloser, error)

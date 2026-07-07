@@ -99,6 +99,29 @@ func TestHandleIncidentCreateOpensTopicAndShowsCard(t *testing.T) {
 	}
 }
 
+func TestHandleIncidentCreateRenamesTopicToDedupedTitle(t *testing.T) {
+	api := newFakeAPI()
+	api.createdTopic.ThreadID = 777
+	h := New(&fakeService{
+		// Simulate the service appending a numeric suffix to keep the title
+		// unique among active incidents in the chat.
+		create: func(_ int64, topicID int64, title string, sev incident.Severity, _ *int64, _ string) (*incident.Incident, error) {
+			return &incident.Incident{Title: title + "-2", TopicID: topicID, Severity: incident.SeverityMedium, Status: incident.StatusActive}, nil
+		},
+	}, api)
+	ctx := &mockContext{args: []string{"create", "db", "is", "down"}}
+
+	if err := h.HandleIncident(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := []string{"db is down-2"}; len(api.renamed) != 1 || api.renamed[0] != want[0] {
+		t.Errorf("topic renames = %v, want %v", api.renamed, want)
+	}
+	if api.createdTopic.Name != "db is down-2" {
+		t.Errorf("topic name %q, want %q", api.createdTopic.Name, "db is down-2")
+	}
+}
+
 func TestSeverityChangeRefreshesMainChatAnnouncement(t *testing.T) {
 	api := newFakeAPI()
 	api.createdTopic.ThreadID = 777
