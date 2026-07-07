@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   go:
     name: incident-service
@@ -56,8 +63,17 @@ jobs:
   docker:
     name: docker build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Normalize image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
 
       - name: Provide env for compose
         run: cp .env.example .env
@@ -67,3 +83,20 @@ jobs:
 
       - name: Build images
         run: docker compose build
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker compose push incident-service report-service frontend demo-app
+          for name in incident-service report-service frontend demo-app; do
+            docker tag "$IMAGE_PREFIX/$name:$IMAGE_TAG" "$IMAGE_PREFIX/$name:latest"
+            docker push "$IMAGE_PREFIX/$name:latest"
+          done
