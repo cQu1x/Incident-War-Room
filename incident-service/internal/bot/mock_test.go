@@ -148,6 +148,7 @@ type fakeAPI struct {
 	createdTopic *telebot.Topic
 	createErr    error
 	deleted      []int
+	renamed      []string
 	sent         []sentMessage
 	edited       []sentMessage
 }
@@ -209,6 +210,14 @@ func (a *fakeAPI) CreateTopic(_ *telebot.Chat, topic *telebot.Topic) (*telebot.T
 	}
 	a.createdTopic.Name = topic.Name
 	return a.createdTopic, nil
+}
+
+func (a *fakeAPI) EditTopic(_ *telebot.Chat, topic *telebot.Topic) error {
+	a.renamed = append(a.renamed, topic.Name)
+	if a.createdTopic != nil && a.createdTopic.ThreadID == topic.ThreadID {
+		a.createdTopic.Name = topic.Name
+	}
+	return nil
 }
 
 func (a *fakeAPI) DeleteTopic(_ *telebot.Chat, topic *telebot.Topic) error {

@@ -104,6 +104,15 @@ func (h *Handler) openIncident(ctx context.Context, chat *telebot.Chat, title st
 		return nil, err
 	}
 
+	// The topic was created with the requested title, but CreateIncident may
+	// have appended a numeric suffix to keep the title unique among active
+	// incidents. Rename the topic so it matches the stored incident title.
+	if inc.Title != title {
+		if err := h.api.EditTopic(chat, &telebot.Topic{ThreadID: topic.ThreadID, Name: topicName(inc.Title)}); err != nil {
+			log.Printf("bot: rename topic %d to %q: %v", topic.ThreadID, inc.Title, err)
+		}
+	}
+
 	if _, err := h.api.Send(
 		chat,
 		incidentCard(inc.Title, inc.Severity, inc.Status, h.mediaEnabled),
