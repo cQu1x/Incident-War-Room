@@ -36,4 +36,30 @@ jobs:
           git reset --hard "$TARGET_REF"
           docker compose pull
           docker compose up -d
-          docker image prune -f
+
+      - name: Health check
+        working-directory: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          deadline=$((SECONDS + 120))
+          until [ "$(docker compose ps report-service --format '{{.Health}}')" = "healthy" ]; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "report-service did not become healthy in time"
+              docker compose ps
+              docker compose logs --tail=80 report-service incident-service
+              exit 1
+            fi
+            sleep 3
+          done
+
+          state=$(docker compose ps incident-service --format '{{.State}}')
+          if [ "$state" != "running" ]; then
+            echo "incident-service is not running (state: ${state:-missing})"
+            docker compose ps
+            docker compose logs --tail=80 incident-service
+            exit 1
+          fi
+
+          echo "Deploy healthy."
+
+      - name: Prune old images
+        run: docker image prune -f
