@@ -5,8 +5,8 @@ Incident War Room. Both pipelines are implemented as GitHub Actions workflows:
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
-| CI | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | every pull request and every push to `main` | build, lint, test and package all services |
-| CD | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | after CI succeeds on `main`, or manually | deploy the packaged images to the production VM |
+| CI | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | every pull request and every push to `main` | build, lint, test and package all services |
+| CD | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml) | after CI succeeds on `main`, or manually | deploy the packaged images to the production VM |
 
 The guiding principle is **build once, deploy the same artifact**: images are
 built and tested in CI, published to the GitHub Container Registry (GHCR), and
@@ -59,7 +59,7 @@ Runs in `report-service/` on Python 3.12 with the pip cache keyed on
 | pytest | `pytest -m "not integration"` | integration tests (real S3 / network) are excluded in CI |
 
 Tests are **hermetic**: an autouse fixture in
-[`report-service/tests/conftest.py`](../report-service/tests/conftest.py)
+[`report-service/tests/conftest.py`](../../report-service/tests/conftest.py)
 forces `S3_ENABLED=false` and removes `DEEPSEEK_API_KEY` for non-integration
 tests, so they never contact S3 or the DeepSeek API and do not depend on a
 local `.env`. Integration-marked tests are left untouched and are only run
@@ -99,7 +99,7 @@ builds — nothing is published.
 ## Container images
 
 The four application images are built from the `build:` sections in
-[`docker-compose.yml`](../docker-compose.yml) and published to GHCR:
+[`docker-compose.yml`](../../docker-compose.yml) and published to GHCR:
 
 | Service | Source | Published image |
 |---------|--------|-----------------|
@@ -164,7 +164,7 @@ serialises deploys so two releases never run at once.
 CD runs on a **self-hosted runner** labelled `[self-hosted, incident-vm]`,
 i.e. the production VM itself. The VM sits behind NAT and cannot accept inbound
 connections, so deployment is pull-based: the runner polls GitHub for jobs.
-See [`docs`](./) and the deployment notes for the runner setup.
+See [`docs`](../) and the deployment notes for the runner setup.
 
 ### Steps
 
@@ -207,7 +207,7 @@ See [`docs`](./) and the deployment notes for the runner setup.
 Application secrets (`DEEPSEEK_API_KEY`, S3 credentials, `FRP_AUTH_TOKEN`,
 Postgres credentials, the Telegram token, …) live in the `.env` file on the VM
 and are **not** managed by these workflows. See
-[`.env.example`](../.env.example) for the full list.
+[`.env.example`](../../.env.example) for the full list.
 
 ---
 

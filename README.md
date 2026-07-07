@@ -182,4 +182,4 @@ build/lint/test plus a Docker build). On `main`, CI also publishes the service
 images to GHCR, and the CD workflow then deploys those exact images to the
 production VM and health-checks the stack.
 
-See [`docs/ci-cd.md`](docs/ci-cd.md) for the full description.
+See [`docs/backend/ci-cd.md`](docs/backend/ci-cd.md) for the full description.
