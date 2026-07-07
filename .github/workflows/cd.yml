@@ -1,7 +1,9 @@
 name: CD
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -9,15 +11,29 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   deploy:
     name: Deploy to VM
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, incident-vm]
+    env:
+      IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha || 'latest' }}
+      TARGET_REF: ${{ github.event.workflow_run.head_sha || 'origin/main' }}
     steps:
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Deploy
         working-directory: ${{ secrets.DEPLOY_PATH }}
         run: |
+          export IMAGE_PREFIX="${IMAGE_PREFIX,,}"
           git fetch --prune origin
-          git reset --hard origin/main
-          docker compose up --build -d
+          git reset --hard "$TARGET_REF"
+          docker compose pull
+          docker compose up -d
           docker image prune -f

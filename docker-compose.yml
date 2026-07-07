@@ -1,5 +1,6 @@
 services:
   incident-service:
+    image: ${IMAGE_PREFIX:-ghcr.io/incidentwarroom}/incident-service:${IMAGE_TAG:-latest}
     build: ./incident-service
     restart: unless-stopped
     env_file: .env
@@ -15,6 +16,7 @@ services:
         condition: service_healthy
 
   report-service:
+    image: ${IMAGE_PREFIX:-ghcr.io/incidentwarroom}/report-service:${IMAGE_TAG:-latest}
     build: ./report-service
     restart: unless-stopped
     env_file: .env
@@ -56,6 +58,7 @@ services:
         condition: service_healthy
 
   frontend:
+    image: ${IMAGE_PREFIX:-ghcr.io/incidentwarroom}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:
@@ -108,6 +111,7 @@ services:
   # incident. The webhook call carries the ALERTMANAGER_WEBHOOK_TOKEN.
 
   demo-app:
+    image: ${IMAGE_PREFIX:-ghcr.io/incidentwarroom}/demo-app:${IMAGE_TAG:-latest}
     build: ./demo-app
     restart: unless-stopped
     ports:
