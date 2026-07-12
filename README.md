@@ -126,11 +126,6 @@ Use this mode when you need full control over data, infrastructure, tokens, stor
 
 1. Create a bot in [@BotFather](https://t.me/BotFather).
 2. Copy the bot token into `BOT_TOKEN`.
-3. Add the bot to your Telegram group.
-4. Enable Topics in the group.
-5. Promote the bot to administrator.
-6. Give the bot permission to manage topics and send messages.
-7. If the bot must collect media and timeline messages, make sure Telegram privacy settings and group permissions allow the bot to see the required messages.
 
 #### 2. Configure environment variables
 
@@ -283,15 +278,17 @@ Then configure Prometheus Alertmanager to send webhook requests to the Incident 
 
 #### 8. Use the self-hosted bot
 
-1. Add your bot to a Telegram group.
-2. Enable Topics.
-3. Promote the bot to admin.
-4. Open the bot menu or run the first incident creation action to verify that the bot is running.
-5. Create an incident from the bot command or menu.
-6. Work inside the generated Topic.
-7. Use `/dashboard` to generate a personal Dashboard link if `JWT_SECRET` and `DASHBOARD_URL` are configured.
-8. Resolve the incident and check that the PDF report is delivered.
-9. If S3 is enabled, verify that media and reports are available through the configured public base URL.
+1. Add your bot to a Telegram group.p.
+2. Enable Topics in the group.
+3. Promote the bot to administrator.
+4. Give the bot permission to manage topics and send messages.
+5. If the bot must collect media and timeline messages, make sure Telegram privacy settings and group permissions allow the bot to see the required messages.
+6. Open the bot menu or run the first incident creation action to verify that the bot is running.
+7. Create an incident from the bot command or menu.
+8. Work inside the generated Topic.
+9. Use `/dashboard` to generate a personal Dashboard link if `JWT_SECRET` and `DASHBOARD_URL` are configured.
+10. Resolve the incident and check that the PDF report is delivered.
+11. If S3 is enabled, verify that media and reports are available through the configured public base URL.
 
 #### 9. Stop or reset
 
